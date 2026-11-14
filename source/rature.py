@@ -27,7 +27,7 @@ from urllib.parse import urlparse, parse_qs, unquote
 
 import numpy as np
 
-VERSION = '1.1.0'
+VERSION = '1.1.1'
 # dernière version publiée sur GitHub (une release = une mise à jour, rien d'autre à maintenir)
 URL_MAJ = os.environ.get('RATURE_URL_MAJ', 'https://api.github.com/repos/kirea-sas/rature/releases/latest')
 # Dans l'application, les fichiers embarqués (web/, bin/) sont dans sys._MEIPASS
