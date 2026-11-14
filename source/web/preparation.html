@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rature</title>
+<link rel="stylesheet" href="/commun.css">
+<style>
+main { max-width: 1060px; margin: 0 auto; padding: 32px 24px 80px; display: grid; grid-template-columns: 1fr 320px; gap: 28px; align-items: start; }
+@media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+.titre { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; }
+.titre input { font: 680 26px var(--ui); letter-spacing: -.015em; border: 1px solid transparent; background: transparent; padding: 2px 8px; margin-left: -9px; width: auto; flex: 1; }
+.titre input:hover { border-color: var(--line); }
+
+.depot { border: 1.5px dashed var(--line-strong); border-radius: 16px; background: var(--surface); padding: 34px 24px; text-align: center;
+  transition: border-color .15s, background .15s; }
+.depot.survol { border-color: var(--accent); background: var(--accent-soft); }
+.depot .ico { width: 48px; height: 48px; margin: 0 auto 12px; border-radius: 14px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
+.depot h2 { font-size: 16px; font-weight: 620; margin-bottom: 4px; }
+.depot p { color: var(--muted); margin: 0 0 16px; }
+.depot .boutons { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.depot small { display: block; color: var(--faint); margin-top: 14px; font-size: 12px; line-height: 1.45; max-width: 460px; margin-inline: auto; }
+
+.fichiers { margin-top: 22px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.fichiers .tete { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+.fichiers .tete b { color: var(--text); font-weight: 600; }
+.ligne-f { display: grid; grid-template-columns: 22px 26px 1fr auto auto 30px; align-items: center; gap: 10px; padding: 10px 12px 10px 10px;
+  border-bottom: 1px solid var(--line); background: var(--surface); }
+.ligne-f:last-child { border-bottom: 0; }
+.ligne-f.glisse { opacity: .4; }
+.ligne-f.cible { box-shadow: inset 0 2px 0 var(--accent); }
+.poignee { cursor: grab; color: var(--faint); display: grid; place-items: center; }
+.num { font: 12px var(--mono); color: var(--faint); text-align: right; }
+.nom-f { min-width: 0; }
+.nom-f b { display: block; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nom-f span { font-size: 12px; color: var(--muted); }
+.badge { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 5px; background: var(--surface-2); color: var(--muted); }
+.duree-f { font: 13px var(--mono); color: var(--muted); }
+.ligne-f .barre-prog { margin-top: 6px; }
+
+aside { position: sticky; top: 80px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+aside h3 { font-size: 14px; margin-bottom: 16px; }
+.estim { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); padding: 12px 0; border-top: 1px solid var(--line); margin-top: 4px; }
+.estim b { color: var(--text); font-weight: 600; }
+aside .btn.primaire { width: 100%; height: 40px; margin-top: 8px; font-size: 14px; }
+
+.suivi { grid-column: 1 / -1; max-width: 560px; margin: 30px auto 0; width: 100%; background: var(--surface); border: 1px solid var(--line);
+  border-radius: 16px; padding: 28px; }
+.suivi h2 { font-size: 18px; margin-bottom: 4px; }
+.suivi > p { color: var(--muted); margin: 0 0 22px; }
+.etape { display: grid; grid-template-columns: 28px 1fr; gap: 12px; padding: 12px 0; }
+.etape .pt { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; border: 1.5px solid var(--line-strong); color: var(--faint); font-size: 12px; font-weight: 600; }
+.etape.fait .pt { background: var(--ok); border-color: var(--ok); color: #fff; }
+.etape.cours .pt { border-color: var(--accent); color: var(--accent); }
+.etape b { font-weight: 580; }
+.etape.attente b { color: var(--faint); }
+.etape .info { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.etape .barre-prog { margin-top: 8px; }
+.erreur-boite { background: var(--cut-soft); color: var(--cut); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; font-size: 13.5px; }
+</style>
+</head>
+<body>
+<header class="appbar">
+  <a class="logo" href="/"></a>
+  <span class="sep"></span>
+  <a class="btn fantome petit" href="/projets" data-t="commun.projets"></a>
+  <span class="espace"></span>
+  <span class="puce" id="puce"></span>
+</header>
+<main id="page"></main>
+<input type="file" id="entree" multiple accept="audio/*,video/mp4,video/quicktime,.wav,.WAV,.flac,.caf,.aif,.aiff,.mov,.MOV,.mp4,.MP4,.m4v" hidden>
+<script src="/langue.js"></script>
+<script src="/i18n.js"></script>
+<script src="/commun.js"></script>
+<script>
+$('.logo').innerHTML = LOGO + 'Rature';
+const PID = location.pathname.split('/')[2];
+let P = null, envois = [], vue = null;
+const LANGUES = ['fr', 'en', 'es', 'it', 'de', 'pt', 'auto'];
+
+async function charger() {
+  P = await api(`/api/p/${PID}`);
+  document.title = `${P.nom} — Rature`;
+  lienRetour(P);
+  if (P.statut === 'pret') return location.reload();
+  const enCours = P.statut === 'attente' || P.statut === 'traitement';
+  $('#puce').className = 'puce ' + P.statut;
+  $('#puce').textContent = t('prep.statut.' + P.statut);
+  if (enCours) { rendreSuivi(); setTimeout(charger, 1500); }
+  else rendreImport();
+}
+
+// ----------------------------------------------------------------- import
+function rendreImport() {
+  if (vue !== 'import') {
+    vue = 'import';
+    $('#page').innerHTML = `
+      <div class="titre"><input type="text" id="nom" value="${esc(P.nom)}" title="${t('prep.renommer')}"></div>
+      <section>
+        ${P.statut === 'erreur' ? `<div class="erreur-boite"><b>${t('prep.echec')}</b> ${esc(P.message)}</div>` : ''}
+        <div class="depot" id="depot">
+          <div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></div>
+          <h2>${t('prep.deposer')}</h2>
+          <p>${t('prep.formats')}</p>
+          <div class="boutons">
+            <button class="btn primaire" id="finder">${t('prep.finder')}</button>
+            <button class="btn" id="parcourir">${t('prep.televerser')}</button>
+          </div>
+          <small>${t('prep.explication')}</small>
+        </div>
+        <div class="fichiers" id="fichiers"></div>
+      </section>
+      <aside>
+        <h3>${t('prep.transcription')}</h3>
+        <label class="champ"><span>${t('prep.langue')}</span><select id="langue">${LANGUES.map(k => `<option value="${k}">${t('langue.' + k)}</option>`).join('')}</select></label>
+        <label class="champ"><span>${t('prep.vocabulaire')}</span><textarea id="vocab" placeholder="${esc(t('prep.vocabulaire_exemple'))}"></textarea>
+          <small>${t('prep.vocabulaire_aide')}</small></label>
+        <label class="champ" style="display:flex;gap:9px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="verbatim" style="margin-top:3px;accent-color:var(--accent)">
+          <span style="margin:0"><b style="color:var(--text);font-weight:600">${t('prep.verbatim')}</b><small style="margin-top:2px">${t('prep.verbatim_aide')}</small></span></label>
+        <div class="estim"><span>${t('prep.duree_totale')}</span><b id="total">–</b></div>
+        <div class="estim" style="border-top:0;padding-top:0"><span>${t('prep.estimation')}</span><b id="estim">–</b></div>
+        <button class="btn primaire" id="lancer">${t('prep.lancer')}</button>
+      </aside>`;
+    $('#langue').value = P.langue || (LANGUE_UI === 'en' ? 'en' : 'fr');
+    $('#vocab').value = P.vocabulaire || '';
+    $('#verbatim').checked = P.verbatim === true;
+    $('#verbatim').onchange = e => sauver({ verbatim: e.target.checked });
+    $('#nom').onchange = e => sauver({ nom: e.target.value.trim() || P.nom });
+    $('#langue').onchange = e => sauver({ langue: e.target.value });
+    $('#vocab').onchange = e => sauver({ vocabulaire: e.target.value });
+    $('#finder').onclick = choisirFinder;
+    $('#parcourir').onclick = () => $('#entree').click();
+    $('#lancer').onclick = lancer;
+    brancherDepot();
+  }
+  rendreFichiers();
+}
+
+function rendreFichiers() {
+  const s = P.sources;
+  const total = s.reduce((a, x) => a + (x.duree || 0), 0);
+  $('#total').textContent = total ? dureeLisible(total) : '–';
+  $('#estim').textContent = total ? '≈ ' + dureeLisible(Math.max(60, total * 0.055)) : '–';
+  $('#lancer').disabled = !s.length || envois.length > 0;
+  if (!s.length && !envois.length) { $('#fichiers').style.display = 'none'; return; }
+  $('#fichiers').style.display = '';
+  $('#fichiers').innerHTML = `<div class="tete"><span><b>${t('prep.n_fichiers', s.length)}</b> · ${t('prep.ordre')}</span><span class="espace"></span>
+      ${s.length > 1 ? `<button class="btn fantome petit" id="trier">${t('prep.trier')}</button>` : ''}</div>`
+    + s.map((x, i) => `<div class="ligne-f" draggable="true" data-i="${i}">
+        <span class="poignee" title="${t('prep.glisser')}"><svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="2.5" cy="2.5" r="1.3"/><circle cx="7.5" cy="2.5" r="1.3"/><circle cx="2.5" cy="7" r="1.3"/><circle cx="7.5" cy="7" r="1.3"/><circle cx="2.5" cy="11.5" r="1.3"/><circle cx="7.5" cy="11.5" r="1.3"/></svg></span>
+        <span class="num">${i + 1}</span>
+        <div class="nom-f"><b title="${esc(x.chemin)}">${esc(x.nom)}</b><span>${esc(x.format)} · ${tailleLisible(x.taille)}${x.heure ? ' · ' + t('prep.enregistre_le', { d: new Date(x.heure).toLocaleString(LOCALE, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) }) : ''}</span></div>
+        <span class="badge" title="${x.copie ? t('prep.copie_aide') : t('prep.lien_aide')}">${x.copie ? t('prep.copie') : t('prep.lien')}</span>
+        <span class="duree-f">${hms(x.duree)}</span>
+        <button class="btn fantome icone petit" data-retirer="${i}" title="${t('prep.retirer')}">✕</button>
+      </div>`).join('')
+    + envois.map(e => `<div class="ligne-f"><span></span><span class="num">↑</span>
+        <div class="nom-f"><b>${esc(e.nom)}</b><span>${t('prep.envoi', { pct: Math.round(e.pct) })}</span><div class="barre-prog"><i style="width:${e.pct}%"></i></div></div>
+        <span></span><span class="duree-f">${tailleLisible(e.taille)}</span><span></span></div>`).join('');
+  $$('[data-retirer]').forEach(b => b.onclick = async () => {
+    const x = P.sources[+b.dataset.retirer];
+    if (x.copie && !await confirmer(t('prep.retirer_titre'), t('prep.retirer_texte', { nom: esc(x.nom) }), t('prep.retirer'), true)) return;
+    P = await api(`/api/p/${PID}/retirer`, { body: { index: +b.dataset.retirer } }); rendreFichiers();
+  });
+  $('#trier')?.addEventListener('click', () => {
+    const ordre = P.sources.map((x, i) => [x, i]).sort((a, b) => (a[0].heure || '9').localeCompare(b[0].heure || '9') || a[0].nom.localeCompare(b[0].nom)).map(a => a[1]);
+    reordonner(ordre);
+  });
+  brancherTri();
+}
+
+async function sauver(champs) { P = await api(`/api/p/${PID}/maj`, { body: champs }); document.title = `${P.nom} — Rature`; }
+async function reordonner(ordre) { await sauver({ ordre }); rendreFichiers(); }
+
+function brancherTri() {
+  let de = null;
+  $$('.ligne-f[draggable]').forEach(l => {
+    l.ondragstart = e => { de = +l.dataset.i; l.classList.add('glisse'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/x-ordre', de); };
+    l.ondragend = () => { de = null; $$('.ligne-f').forEach(x => x.classList.remove('glisse', 'cible')); };
+    l.ondragover = e => { if (de === null) return; e.preventDefault(); $$('.ligne-f').forEach(x => x.classList.remove('cible')); l.classList.add('cible'); };
+    l.ondrop = e => {
+      if (de === null) return;
+      e.preventDefault(); e.stopPropagation();
+      const vers = +l.dataset.i, ordre = P.sources.map((_, i) => i);
+      ordre.splice(vers, 0, ordre.splice(de, 1)[0]);
+      reordonner(ordre);
+    };
+  });
+}
+
+function brancherDepot() {
+  const d = $('#depot');
+  const estFichier = e => [...e.dataTransfer.types].includes('Files');
+  for (const el of [d, document.body]) {
+    el.addEventListener('dragover', e => { if (estFichier(e)) { e.preventDefault(); d.classList.add('survol'); } });
+  }
+  document.body.addEventListener('dragleave', e => { if (!e.relatedTarget) d.classList.remove('survol'); });
+  document.body.addEventListener('drop', e => {
+    if (!estFichier(e)) return;
+    e.preventDefault(); d.classList.remove('survol');
+    televerser([...e.dataTransfer.files]);
+  });
+  $('#entree').onchange = e => { televerser([...e.target.files]); e.target.value = ''; };
+}
+
+async function choisirFinder() {
+  const b = $('#finder');
+  b.disabled = true; b.textContent = t('prep.finder_ouvert');
+  try {
+    const r = await api(`/api/p/${PID}/choisir`, { body: {} });
+    P = r.projet;
+    r.erreurs.forEach(m => toast(esc(m), { erreur: true }));
+    rendreFichiers();
+  } catch (e) { toast(esc(e.message), { erreur: true }); }
+  b.disabled = false; b.textContent = t('prep.finder');
+}
+
+async function televerser(fichiers) {
+  for (const f of fichiers) {
+    const e = { nom: f.name, taille: f.size, pct: 0 };
+    envois.push(e); rendreFichiers();
+    try {
+      const r = await new Promise((ok, ko) => {
+        const x = new XMLHttpRequest();
+        x.open('PUT', `/api/p/${PID}/televerser?nom=${encodeURIComponent(f.name)}`);
+        x.upload.onprogress = ev => { e.pct = ev.loaded / ev.total * 100; rendreFichiers(); };
+        x.onload = () => { const j = JSON.parse(x.responseText || '{}'); x.status < 300 ? ok(j) : ko(new Error(j.erreur || t('prep.envoi_echec'))); };
+        x.onerror = () => ko(new Error(t('prep.envoi_coupe')));
+        x.send(f);
+      });
+      P = r.projet;
+      r.erreurs.forEach(m => toast(esc(m), { erreur: true }));
+    } catch (err) { toast(`${esc(f.name)} : ${esc(err.message)}`, { erreur: true }); }
+    envois.splice(envois.indexOf(e), 1);
+    rendreFichiers();
+  }
+}
+
+async function lancer() {
+  await sauver({ langue: $('#langue').value, vocabulaire: $('#vocab').value, verbatim: $('#verbatim').checked, nom: $('#nom').value.trim() || P.nom });
+  try { await api(`/api/p/${PID}/lancer`, { body: {} }); vue = null; charger(); }
+  catch (e) { toast(esc(e.message), { erreur: true }); }
+}
+
+// ------------------------------------------------------------------ suivi
+function rendreSuivi() {
+  vue = 'suivi';
+  const ordre = ['preparation', 'transcription', 'analyse'];
+  const ic = P.statut === 'attente' ? -1 : ordre.indexOf(P.etape);
+  $('#page').innerHTML = `<div class="suivi">
+    <h2>${esc(P.nom)}</h2>
+    <p>${t('suivi.texte', { fichiers: t('carte.fichiers', P.n_sources), duree: dureeLisible(P.duree_sources) })}</p>
+    ${ordre.map((k, i) => {
+      const cl = i < ic ? 'fait' : i === ic ? 'cours' : 'attente';
+      const pct = i === ic ? P.progression : 0;
+      return `<div class="etape ${cl}"><span class="pt">${cl === 'fait' ? '✓' : i + 1}</span><div><b>${t('suivi.' + k)}</b>
+        <div class="info">${i === ic && P.message ? esc(P.message) : t('suivi.' + k + '_aide')}${i === ic && k === 'transcription' ? ` · ${pct} %` : ''}</div>
+        ${i === ic ? `<div class="barre-prog ${k === 'analyse' || !pct ? 'indet' : ''}"><i style="width:${pct}%"></i></div>` : ''}</div></div>`;
+    }).join('')}
+    ${P.statut === 'attente' ? `<p style="margin:12px 0 0">${esc(P.message || t('suivi.attente'))}</p>` : ''}
+  </div>`;
+}
+
+charger().catch(e => { $('#page').innerHTML = `<div class="suivi"><h2>${t('suivi.introuvable')}</h2><p>${esc(e.message)}</p><a class="btn" href="/projets">${t('commun.projets')}</a></div>`; });
+</script>
+</body>
+</html>

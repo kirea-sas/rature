@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rature</title>
+<link rel="stylesheet" href="/commun.css">
+<style>
+main { max-width: 860px; margin: 0 auto; padding: 36px 24px 80px; }
+.entete h1 { font-size: 28px; font-weight: 680; }
+.entete p { color: var(--muted); margin: 6px 0 22px; }
+.reglage { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-size: 14px; color: var(--muted); flex-wrap: wrap; }
+.reglage select { width: auto; }
+.reglage .espace { flex: 1; }
+.depot { border: 2px dashed var(--line-strong); border-radius: 16px; padding: 34px 20px; text-align: center; color: var(--muted);
+  transition: border-color .15s, background .15s; }
+.depot.survol { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.depot b { display: block; font-size: 17px; color: var(--text); margin: 10px 0 4px; font-weight: 620; }
+.depot small { display: block; color: var(--faint); margin-top: 4px; }
+.depot svg { color: var(--accent); }
+.liste { margin-top: 26px; display: flex; flex-direction: column; gap: 10px; }
+.film { display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; align-items: center; padding: 14px 16px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.film .nom { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.film .meta { color: var(--faint); font-size: 12.5px; margin-top: 2px; }
+.film .etat { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+.film .etat .barre-prog { flex: 1; }
+.film .etat.fini { color: var(--ok); }
+.film .etat.fini code { font: 12.5px var(--mono); color: var(--text); background: var(--surface-2); padding: 2px 6px; border-radius: 5px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%; }
+.film .etat.erreur { color: var(--cut); }
+.film .actions { display: flex; gap: 6px; }
+.vide { text-align: center; color: var(--faint); font-size: 13.5px; margin-top: 18px; }
+</style>
+</head>
+<body>
+<header class="appbar">
+  <a class="logo" href="/"></a>
+  <span class="sep"></span>
+  <a class="btn fantome petit" href="/projets" data-t="choix.montage"></a>
+  <span class="espace"></span>
+  <a class="btn fantome icone" href="/reglages" data-t-title="accueil.reglages"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+</header>
+<main>
+  <div class="entete">
+    <h1 data-t="choix.films"></h1>
+    <p data-t="st.intro"></p>
+  </div>
+  <div class="reglage">
+    <span data-t="st.langue"></span><select id="langue"></select>
+    <span class="espace"></span>
+    <button class="btn primaire" id="choisir" data-t="st.choisir"></button>
+  </div>
+  <div class="depot" id="depot">
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/><path d="M10 10.2a2.4 2.4 0 1 0 0 3.6M17 10.2a2.4 2.4 0 1 0 0 3.6"/></svg>
+    <b data-t="st.deposer"></b>
+    <span data-t="st.formats"></span>
+    <small data-t="st.ou_enregistre"></small>
+  </div>
+  <div class="liste" id="liste"></div>
+</main>
+<input type="file" id="entree" multiple accept="video/*,audio/*,.mkv,.mov,.mp4,.m4v" hidden>
+<script src="/langue.js"></script>
+<script src="/i18n.js"></script>
+<script src="/commun.js"></script>
+<script>
+$('.logo').innerHTML = LOGO + 'Rature';
+const LANGUES_FILMS = ['auto', 'fr', 'en', 'es', 'it', 'de', 'pt', 'nl'];
+let films = [], minuterie;
+
+// langue des dialogues : mémorisée par Rature (aussi utilisée pour les vidéos glissées sur la fenêtre)
+$('#langue').innerHTML = LANGUES_FILMS.map(k => `<option value="${k}">${t('langue.' + k)}</option>`).join('');
+api('/api/reglages').then(r => { $('#langue').value = r.reglages.langue_films || 'auto'; }).catch(() => {});
+$('#langue').onchange = () => api('/api/reglages/langue-films', { body: { langue: $('#langue').value } });
+
+async function charger() {
+  films = (await api('/api/projets')).filter(p => p.genre === 'sous-titres');
+  rendre();
+  clearTimeout(minuterie);
+  if (films.some(p => p.statut === 'traitement' || p.statut === 'attente')) minuterie = setTimeout(charger, 1500);
+}
+
+function etatFilm(p) {
+  if (p.statut === 'pret' && p.srt) {
+    return `<div class="etat fini">✓ <code title="${esc(p.srt)}">${esc(p.srt.split('/').pop())}</code></div>`;
+  }
+  if (p.statut === 'erreur') return `<div class="etat erreur">${esc(p.message || t('carte.echec'))}</div>`;
+  const ind = p.statut === 'attente' || !p.progression;
+  const etape = p.etape ? t('etape.' + p.etape) : t('etape.attente');
+  return `<div class="etat"><span>${etape}${p.progression ? ` · ${p.progression} %` : ''}${p.message ? ` · ${esc(p.message)}` : ''}</span>
+    <div class="barre-prog ${ind ? 'indet' : ''}"><i style="width:${p.progression || 0}%"></i></div></div>`;
+}
+
+function rendre() {
+  if (!films.length) { $('#liste').innerHTML = `<p class="vide">${t('st.aucun')}</p>`; return; }
+  $('#liste').innerHTML = films.map(p => `<div class="film" data-id="${p.id}">
+    <div><div class="nom" title="${esc(p.nom)}">${esc(p.nom)}</div>
+      <div class="meta">${[p.duree ? dureeLisible(p.duree) : '', (p.langue_detectee && p.langue === 'auto' ? t('st.detectee', { l: t('langue.' + p.langue_detectee) }) : t('langue.' + (p.langue || 'auto'))), dateLisible(p.cree)].filter(Boolean).join(' · ')}</div></div>
+    <div class="actions">
+      ${p.statut === 'pret' && p.srt ? `<button class="btn petit" data-a="finder">${t('st.afficher')}</button>
+        <button class="btn petit" data-a="corriger" title="${t('st.corriger_aide')}">${t('st.corriger')}</button>` : ''}
+      ${p.statut === 'erreur' ? `<button class="btn petit" data-a="relancer">${t('st.relancer')}</button>` : ''}
+      <button class="btn fantome icone petit" data-a="menu" title="${t('carte.options')}"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><circle cx="3" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="13" cy="8" r="1.4"/></svg></button>
+    </div>
+    ${etatFilm(p)}</div>`).join('');
+}
+
+$('#liste').addEventListener('click', async e => {
+  const b = e.target.closest('[data-a]'); if (!b) return;
+  const p = films.find(x => x.id === b.closest('.film').dataset.id);
+  if (b.dataset.a === 'finder') api(`/api/p/${p.id}/finder`, { body: { fichier: p.srt } });
+  if (b.dataset.a === 'corriger') location.href = `/p/${p.id}`;
+  if (b.dataset.a === 'relancer') { await api(`/api/p/${p.id}/lancer`, { body: {} }).catch(err => toast(esc(err.message), { erreur: true })); charger(); }
+  if (b.dataset.a === 'menu') menu(b, [
+    ...(p.statut === 'pret' ? [{ libelle: t('st.corriger'), action: () => location.href = `/p/${p.id}` }] : []),
+    { libelle: t('menu.corbeille'), danger: true, action: async () => {
+      if (!await confirmer(t('corbeille.titre'), t('st.corbeille_texte', { nom: esc(p.nom) }), t('menu.corbeille'), true)) return;
+      await api(`/api/p/${p.id}/supprimer`, { body: {} }); charger();
+    } },
+  ]);
+});
+
+function signaler(r) {
+  for (const err of r.erreurs || []) toast(esc(err), { erreur: true, duree: 9000 });
+  charger();
+}
+$('#choisir').onclick = async () => {
+  $('#choisir').disabled = true;
+  try { signaler(await api('/api/films/choisir', { body: { langue: $('#langue').value } })); }
+  catch (e) { toast(esc(e.message), { erreur: true }); }
+  finally { $('#choisir').disabled = false; }
+};
+
+// Glisser-déposer : dans l'app, Rature reçoit le chemin des vidéos (le .srt va à côté, sans copie) ;
+// dans un navigateur, la vidéo est envoyée et seul son son est gardé.
+window.filmsDeposes = signaler;
+const zone = $('#depot');
+const estFichier = e => [...(e.dataTransfer?.types || [])].includes('Files');
+document.body.addEventListener('dragover', e => { if (estFichier(e)) { e.preventDefault(); zone.classList.add('survol'); } });
+document.body.addEventListener('dragleave', e => { if (!e.relatedTarget) zone.classList.remove('survol'); });
+document.body.addEventListener('drop', e => {
+  if (!estFichier(e)) return;
+  e.preventDefault(); zone.classList.remove('survol');
+  if (!window.pywebview) envoyer([...e.dataTransfer.files]);
+});
+zone.onclick = () => window.pywebview ? $('#choisir').click() : $('#entree').click();
+$('#entree').onchange = e => { envoyer([...e.target.files]); e.target.value = ''; };
+async function envoyer(fichiers) {
+  for (const f of fichiers) {
+    toast(t('st.envoi', { nom: esc(f.name) }), { duree: 2500 });
+    const r = await fetch(`/api/films/televerser?nom=${encodeURIComponent(f.name)}&langue=${$('#langue').value}`, { method: 'PUT', body: f })
+      .then(x => x.json()).catch(e => ({ erreurs: [e.message] }));
+    signaler(r.erreur ? { erreurs: [r.erreur] } : r);
+  }
+}
+charger();
+</script>
+</body>
+</html>

@@ -1,0 +1,1238 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rature</title>
+<link rel="stylesheet" href="/commun.css">
+<style>
+body { padding-bottom: 150px; }
+.appbar .projet { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 34vw; }
+#statut { font-size: 12.5px; color: var(--faint); white-space: nowrap; }
+.options { display: flex; gap: 4px; background: var(--surface-2); border-radius: 9px; padding: 3px; }
+.opt { height: 28px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); font: 500 12.5px var(--ui); cursor: pointer; white-space: nowrap; }
+.opt:hover { color: var(--text); }
+.opt.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+@media (max-width: 980px) { .options { display: none; } }
+
+main { max-width: 860px; margin: 0 auto; padding: 36px 24px 0; }
+#chargement { text-align: center; color: var(--faint); padding: 100px 0; }
+.source { display: flex; align-items: center; gap: 12px; margin: 40px 0 18px; color: var(--faint); font-size: 12px; font-weight: 550; letter-spacing: .02em; }
+.source::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.source b { color: var(--muted); font-weight: 600; }
+.par { display: grid; grid-template-columns: 76px 1fr; gap: 18px; margin: 0 0 22px; position: relative; }
+.meta { font: 12px/1.3 var(--mono); color: var(--faint); padding-top: 5px; text-align: right; cursor: pointer; user-select: none; }
+.meta .hor { display: block; color: var(--muted); font-weight: 500; margin-bottom: 2px; }
+.meta:hover .hor { color: var(--accent); }
+/* ciseaux du paragraphe : sous les horaires, à un endroit fixe ; discrets au survol du paragraphe */
+.act { display: grid; place-items: center; margin: 8px 0 0 auto; width: 30px; height: 30px; border-radius: 8px; border: 0;
+  background: transparent; color: var(--muted); cursor: pointer; opacity: 0; transition: opacity .12s, background .12s; }
+.par:hover .act, .act:focus-visible { opacity: 1; }
+.act:hover { background: var(--cut-soft); color: var(--cut); }
+.par.coupe .act:hover { background: var(--ok-soft); color: var(--ok); }
+.par p { margin: 0; font: 17px/1.78 var(--ui); letter-spacing: -.003em; color: var(--text); }
+.w { border-radius: 4px; padding: 1px 0; transition: background .08s; cursor: text; }
+.w.x { color: var(--faint); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--cut) 70%, transparent); text-decoration-thickness: 1.5px; }
+.w.c { text-decoration: underline dotted var(--accent); text-underline-offset: 4px; }
+.w.lu { background: var(--accent-soft); box-shadow: 0 0 0 2px var(--accent-soft); }
+.w.p { display: inline-flex; align-items: center; gap: 4px; font: 500 11.5px var(--ui); color: var(--muted); background: var(--surface-2);
+  padding: 2px 8px; border-radius: 99px; vertical-align: 2px; white-space: nowrap; }
+.w.p.x { text-decoration: line-through; background: var(--cut-soft); color: var(--cut); }
+.par.coupe p { opacity: .6; }
+body.masquer .w.x, body.masquer .w.x + .sp { display: none; }
+body.masquer .par.coupe { display: none; }
+/* sélection : seuls les mots se colorent (pas les marges, les horaires ni les blocs entre paragraphes) */
+::selection { background: transparent; }
+.w::selection, .sp::selection, input::selection, textarea::selection, .fenetre ::selection { background: color-mix(in srgb, var(--accent) 28%, transparent); }
+input.edit { font: inherit; border: 0; outline: 2px solid var(--accent); border-radius: 4px; padding: 0 3px; background: var(--surface); color: var(--text); }
+
+/* marqueurs : reprise (vert) et moments forts (ambre) */
+.w.reprise { background: var(--ok-soft); box-shadow: inset 0 -2px 0 var(--ok); }
+.w.reprise::before { content: "⚑"; color: var(--ok); font-size: .78em; margin: 0 3px 0 1px; vertical-align: 1px; }
+.w.fort { background: var(--star-soft); border-radius: 0; }
+.w.fort-debut { border-radius: 4px 0 0 4px; }
+.w.fort-fin { border-radius: 0 4px 4px 0; }
+.w.fort-debut.fort-fin { border-radius: 4px; }
+.w.fort:not(.fort-fin) + .sp { background: var(--star-soft); }
+.w.fort-debut::before { content: "★"; color: var(--star); font-size: .8em; margin: 0 3px 0 2px; vertical-align: 1px; }
+.frise .zone-fort { position: absolute; top: -4px; bottom: -4px; min-width: 3px; background: var(--star-soft); border-top: 2px solid var(--star); pointer-events: none; }
+#marqueurs { position: relative; color: var(--ok); }
+#marqueurs b { position: absolute; top: 3px; right: 2px; min-width: 15px; height: 15px; padding: 0 4px; border-radius: 99px; background: var(--ok);
+  color: #fff; font: 600 10px/15px var(--ui); display: none; }
+.frise .repere { position: absolute; top: -6px; bottom: -6px; width: 2px; margin-left: -1px; background: var(--ok); border-radius: 2px; pointer-events: none; }
+.frise .repere::before { content: ""; position: absolute; top: 0; left: 2px; border: 4px solid transparent; border-left: 6px solid var(--ok); border-right: 0; }
+
+/* fenêtre d'export */
+.fenetre.export { width: min(640px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; }
+.fenetre.export h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 18px 0 8px; }
+.presets { display: flex; gap: 4px; background: var(--surface-2); border-radius: 10px; padding: 3px; margin-bottom: 16px; align-items: center; }
+.presets button { flex: 1; border: 0; background: none; padding: 7px 8px; border-radius: 8px; font: 550 13px var(--ui); color: var(--muted); cursor: pointer; }
+.presets button.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.1); }
+.presets #x-perso { flex: 1; text-align: center; font-size: 12.5px; color: var(--accent); font-weight: 600; }
+.x-grille { display: grid; grid-template-columns: .9fr 1.7fr .9fr; gap: 10px; }
+.seg[hidden] { display: none; }
+.x-grille .champ { margin-bottom: 8px; }
+.x-case { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; padding: 5px 0; cursor: pointer; }
+.x-case input { margin-top: 3px; accent-color: var(--accent); }
+.x-case small { color: var(--muted); }
+.x-grande { background: var(--accent-soft); border-radius: 10px; padding: 10px 12px; margin-top: 4px; }
+.x-grande b { display: block; }
+.x-details { margin: 6px 0 4px 12px; padding-left: 14px; border-left: 2px solid var(--line); transition: opacity .15s; }
+.x-details.off { opacity: .4; pointer-events: none; }
+.x-ligne { display: flex; align-items: center; gap: 12px; font-size: 13.5px; padding: 5px 0; }
+.x-ligne > span { min-width: 130px; }
+.x-ligne select { width: auto; padding: 4px 8px; font-size: 13px; }
+.seg { display: inline-flex; background: var(--surface-2); border-radius: 8px; padding: 2px; }
+.seg button { border: 0; background: none; padding: 4px 10px; border-radius: 6px; font: 500 12.5px var(--ui); color: var(--muted); cursor: pointer; }
+.seg button.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.1); }
+.x-ecoute { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.x-ecoute small { color: var(--faint); font-size: 12px; }
+.x-fichiers { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+.x-fichiers .large { grid-column: 1 / -1; }
+.x-dest { display: flex; align-items: center; gap: 10px; background: var(--surface-2); border-radius: 9px; padding: 6px 6px 6px 12px; margin-bottom: 4px; }
+.x-dest span { flex: 1; font: 12.5px var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.x-etapes { margin: 12px 0 14px; font-size: 14px; line-height: 2; color: var(--faint); }
+.x-etapes .fait { color: var(--ok); } .x-etapes .cours { color: var(--text); font-weight: 600; }
+#exporter.occupe { opacity: .85; }
+@media (max-width: 600px) { .x-grille { grid-template-columns: 1fr; } }
+
+/* mini-carte */
+#minimap { position: fixed; z-index: 15; left: 0; top: 56px; bottom: 100px; width: 150px; padding: 16px 12px 8px 16px; display: none; }
+#minimap canvas { display: block; width: 100%; height: 100%; cursor: pointer; }
+#minimap .pct { position: absolute; right: 16px; transform: translateY(-50%); font: 600 10.5px var(--mono); color: var(--text);
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: 99px; padding: 1px 6px; pointer-events: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,.12); white-space: nowrap; }
+#minimap .bulle { position: absolute; left: calc(100% - 4px); transform: translateY(-50%); background: var(--text); color: var(--bg);
+  font: 11px var(--mono); padding: 3px 7px; border-radius: 6px; pointer-events: none; white-space: nowrap; display: none; z-index: 2; }
+body.avec-minimap #minimap { display: block; }
+body.avec-minimap main { padding-left: 170px; max-width: 1030px; }
+body.avec-sommaire main { padding-right: 304px; max-width: 1164px; }
+body.avec-minimap.avec-sommaire main { max-width: 1334px; }
+@media (max-width: 1000px) { body.avec-minimap #minimap { display: none; } body.avec-minimap main { padding-left: 24px; max-width: 860px; } }
+@media (max-width: 1180px) { body.avec-sommaire #sommaire { display: none; } body.avec-sommaire main { padding-right: 24px; max-width: 1030px; } }
+
+/* sommaire des marqueurs */
+#sommaire { position: fixed; z-index: 15; right: 0; top: 56px; bottom: 100px; width: 290px; padding: 16px 16px 8px 8px; display: none; flex-direction: column; }
+body.avec-sommaire #sommaire { display: flex; }
+#sommaire .tete-s { display: flex; align-items: baseline; gap: 8px; padding: 0 8px 10px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+#sommaire .tete-s span { font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--faint); }
+#som-liste { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 4px; padding-right: 4px; }
+.som { position: relative; border-radius: 10px; padding: 9px 10px 9px 14px; cursor: pointer; border: 1px solid transparent; transition: background .12s; }
+.som::before { content: ""; position: absolute; left: 4px; top: 10px; bottom: 10px; width: 3px; border-radius: 3px; background: var(--star); }
+.som.reprise::before { background: var(--ok); }
+.som:hover { background: var(--surface); border-color: var(--line); }
+.som.actif { background: var(--star-soft); }
+.som.reprise.actif { background: var(--ok-soft); }
+.som .h { font: 11.5px var(--mono); color: var(--faint); display: flex; gap: 6px; }
+.som .h b { color: var(--muted); font-weight: 600; }
+.som .note { font-weight: 600; font-size: 13.5px; margin: 2px 0 1px; color: var(--text); cursor: text; border-radius: 4px; }
+.som .note.vide { color: var(--faint); font-weight: 500; font-style: italic; }
+.som .note:hover { background: var(--surface-2); }
+.som .ext { font-size: 12.5px; color: var(--muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.som .ext.coupe { text-decoration: line-through; text-decoration-color: var(--cut); }
+.som .suppr { position: absolute; top: 6px; right: 6px; opacity: 0; border: 0; background: none; color: var(--faint); cursor: pointer; border-radius: 6px; width: 22px; height: 22px; }
+.som:hover .suppr { opacity: 1; }
+.som .suppr:hover { background: var(--cut-soft); color: var(--cut); }
+.som input { width: 100%; font: 600 13.5px var(--ui); padding: 2px 6px; border-radius: 6px; }
+.som-vide { color: var(--faint); font-size: 13px; line-height: 1.5; padding: 4px 8px; }
+
+/* barre d'outils de sélection */
+#outils { position: absolute; z-index: 30; display: none; gap: 2px; padding: 4px; background: var(--text); border-radius: 10px; box-shadow: var(--shadow-lg); }
+#outils button { border: 0; background: transparent; color: var(--bg); font: 500 12.5px var(--ui); padding: 6px 10px; border-radius: 7px; cursor: pointer; display: flex; gap: 6px; align-items: center; }
+#outils button:hover { background: color-mix(in srgb, var(--bg) 16%, transparent); }
+#outils kbd { background: transparent; color: inherit; opacity: .6; border-color: currentColor; }
+
+/* transport */
+.transport { position: fixed; z-index: 25; left: 50%; bottom: 16px; transform: translateX(-50%); width: min(1100px, calc(100% - 24px));
+  background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow-lg);
+  display: grid; grid-template-columns: auto auto auto auto 1fr auto; align-items: center; gap: 16px; padding: 12px 16px; }
+.voix-claire { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line-strong);
+  background: var(--surface); color: var(--muted); font: 600 12px var(--ui); cursor: pointer; white-space: nowrap; }
+.voix-claire:hover { color: var(--text); }
+.voix-claire.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.vitesses { display: flex; gap: 2px; background: var(--surface-2); border-radius: 8px; padding: 2px; }
+.vitesses button { height: 24px; min-width: 34px; padding: 0 6px; border: 0; border-radius: 6px; background: transparent; color: var(--muted);
+  font: 600 11.5px var(--mono); cursor: pointer; }
+.vitesses button:hover { color: var(--text); }
+.vitesses button.on { background: var(--surface); color: var(--accent); box-shadow: 0 1px 2px rgba(0,0,0,.1); }
+#lecture { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--accent); color: #fff; cursor: pointer; display: grid; place-items: center; transition: background .12s, transform .08s; }
+#lecture:hover { background: var(--accent-hover); }
+#lecture:active { transform: scale(.96); }
+.temps { font: 12px var(--mono); color: var(--muted); line-height: 1.5; min-width: 132px; }
+.temps b { color: var(--text); font-size: 15px; font-weight: 600; }
+.temps .moins { color: var(--cut); }
+.frise { position: relative; height: 44px; cursor: pointer; }
+.frise canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.frise .tete { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--accent); border-radius: 2px; pointer-events: none; }
+.frise .bulle { position: absolute; bottom: calc(100% + 8px); transform: translateX(-50%); background: var(--text); color: var(--bg); font: 11px var(--mono); padding: 3px 7px; border-radius: 6px; pointer-events: none; display: none; white-space: nowrap; }
+.frise:hover .bulle { display: block; }
+.legende { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; color: var(--muted); }
+.legende i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }
+@media (max-width: 760px) { .legende { display: none; } .transport { grid-template-columns: auto auto auto auto 1fr; } .voix-claire span { display: none; } .par { grid-template-columns: 1fr; gap: 2px; } .meta { text-align: left; } }
+
+.aide-raccourcis { display: grid; grid-template-columns: auto 1fr; gap: 9px 16px; align-items: center; font-size: 13.5px; margin-top: 4px; }
+.aide-raccourcis span:nth-child(odd) { text-align: right; }
+</style>
+</head>
+<body>
+<header class="appbar">
+  <a class="logo" href="/" data-t-title="ed.tous_projets"></a>
+  <span class="sep"></span>
+  <a class="btn fantome petit" href="/projets" data-t="commun.projets"></a>
+  <span class="projet" id="nom-projet"></span>
+  <span class="espace"></span>
+  <span id="statut"></span>
+  <div class="options">
+    <button class="opt on" data-opt="minimap" data-t-title="ed.minimap_aide" data-t="ed.minimap"></button>
+    <button class="opt on" data-opt="sommaire" data-t-title="ed.sommaire_aide" data-t="ed.sommaire"></button>
+    <button class="opt on" data-opt="saut" data-t-title="ed.ecouter_montage_aide" data-t="ed.ecouter_montage"></button>
+    <button class="opt" data-opt="masquer" data-t-title="ed.masquer_aide" data-t="ed.masquer"></button>
+    <button class="opt on" data-opt="suivre" data-t-title="ed.suivre_aide" data-t="ed.suivre"></button>
+  </div>
+  <button class="btn fantome icone" id="nettoyer" data-t-title="net.titre"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m14 4 6 6M17 7l-7.5 7.5M4 20c3 0 6-1 7.5-2.5l1-1-3-3-1 1C7 16 6 18 4 20z"/><path d="M3 9h3M5 7.5v3M18 15h3M19.5 13.5v3"/></svg></button>
+  <button class="btn fantome icone" id="marqueurs" data-t-title="marq.bouton"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M5 21V4h11l-1.5 4L16 12H7v9z"/></svg><b id="n-marqueurs"></b></button>
+  <button class="btn fantome icone" id="aide" data-t-title="ed.raccourcis_aide">?</button>
+  <button class="btn" id="sous-titres" data-t="ed.sous_titres" data-t-title="ed.sous_titres_aide"></button>
+  <button class="btn primaire" id="exporter" data-t="ed.exporter"></button>
+</header>
+<aside id="sommaire"><div class="tete-s"><span style="all:unset" data-t="som.titre"></span><span id="som-n"></span></div><div id="som-liste"></div></aside>
+<aside id="minimap" data-t-title="ed.minimap_titre"><canvas></canvas><div class="pct" id="pct-mm"></div><div class="bulle" id="bulle-mm"></div></aside>
+<main id="texte"><div id="chargement" data-t="ed.chargement"></div></main>
+
+<div id="outils">
+  <button data-o="couper"><span data-t="ed.couper"></span> <kbd>⌫</kbd></button>
+  <button data-o="restaurer"><span data-t="ed.restaurer"></span> <kbd>R</kbd></button>
+  <button data-o="fort">★ <span data-t="ed.fort"></span> <kbd>F</kbd></button>
+  <button data-o="ecouter" data-t="ed.ecouter"></button>
+</div>
+
+<div class="transport">
+  <button id="lecture" data-t-title="ed.lecture"></button>
+  <div class="temps"><b id="pos">00:00:00</b><br><span id="durees"></span></div>
+  <div class="vitesses" id="vitesses" data-t-title="ed.vitesse">
+    <button data-v="1">1×</button><button data-v="1.5">1,5×</button><button data-v="2">2×</button><button data-v="2.5">2,5×</button><button data-v="3">3×</button>
+  </div>
+  <button class="voix-claire" id="voix-claire" data-t-title="ed.voix_claire_aide"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v18M8 7v10M4 10v4M16 6v12M20 9v6"/></svg><span data-t="ed.voix_claire"></span></button>
+  <div class="frise" id="frise"><canvas></canvas><div class="tete" id="tete"></div><div class="bulle" id="bulle"></div></div>
+  <div class="legende"><span><i style="background:var(--muted)"></i><span data-t="ed.conserve"></span></span><span><i style="background:var(--cut)"></i><span data-t="ed.coupe"></span></span></div>
+</div>
+<audio id="audio" preload="metadata"></audio>
+
+<script src="/langue.js"></script>
+<script src="/i18n.js"></script>
+<script src="/commun.js"></script>
+<script>
+$('.logo').innerHTML = LOGO;
+const PID = location.pathname.split('/')[2];
+// Deux lecteurs : celui qui joue (`audio`) et un relais en pause, déjà placé au début du passage gardé suivant.
+// Au passage d'une coupe, on bascule de l'un à l'autre (≈ 30 ms) au lieu de sauter (110 à 180 ms de silence).
+const lecteurs = [$('#audio'), new Audio()];
+let audio = lecteurs[0];
+lecteurs[1].preload = 'auto';
+for (const a of lecteurs) a.src = `/p/${PID}/apercu.m4a`;
+const ICO_PLAY = '<svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor"><path d="M5 3.2v11.6a.8.8 0 0 0 1.2.7l9.3-5.8a.8.8 0 0 0 0-1.4L6.2 2.5A.8.8 0 0 0 5 3.2z"/></svg>';
+const ICO_PAUSE = '<svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor"><rect x="4" y="3" width="3.6" height="12" rx="1"/><rect x="10.4" y="3" width="3.6" height="12" rx="1"/></svg>';
+const ICO_CISEAUX = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/></svg>';
+$('#lecture').innerHTML = ICO_PLAY;
+
+let J = [], D = [], DUREE = 0, SOURCES = [], CRETE = [];
+let spans = [], pars = new Map();
+let sup = new Set(), corr = {};
+let histo = [], refaire = [];
+let garde = [], dureeMontage = 0;
+const opts = { saut: true, masquer: false, suivre: true, minimap: true, sommaire: true, vitesse: 1, voixClaire: false };
+
+const fin = k => k + 1 < J.length ? J[k + 1].d : DUREE;
+const hm = d => d.toTimeString().slice(0, 8);
+function sourceDe(t) { let s = SOURCES[0]; for (const x of SOURCES) if (t >= x.debut - 1e-6) s = x; return s; }
+function horloge(t) { const s = sourceDe(t); return s?.heure ? hm(new Date(new Date(s.heure).getTime() + (t - s.debut) * 1000)) : ''; }
+
+async function demarrer() {
+  const [p, mots, etat, crete] = await Promise.all([api(`/api/p/${PID}`), api(`/api/p/${PID}/mots`), api(`/api/p/${PID}/etat`), api(`/api/p/${PID}/crete`)]);
+  $('#nom-projet').textContent = p.nom;
+  document.title = `${p.nom} — Rature`;
+  lienRetour(p);
+  J = mots.jetons; DUREE = mots.duree; SOURCES = mots.sources; D = J.map(j => j.d); CRETE = crete;
+  sup = new Set(etat.supprimes || []); corr = etat.corrections || {};
+  reprise = etat.reprise ?? null; forts = etat.forts || [];
+  positionEnregistree = reprise; position = reprise;
+  if (reprise == null && etat.marqueurs?.length) reprise = [...etat.marqueurs].sort((a, b) => b.cree.localeCompare(a.cree))[0].i;
+  try { Object.assign(opts, JSON.parse(localStorage.getItem('rature-opts') || '{}')); } catch {}
+  rendre();
+  appliquerOptions();
+  appliquerTout();
+  afficherMarqueurs();
+  reprendreAuMarqueur();
+  // un export de ce projet est peut-être en cours (lancé avant de quitter l'éditeur)
+  api('/api/taches').then(ts => {
+    const en = ts.find(x => x.pid === PID && (x.etat === 'en_cours' || x.etat === 'attente'));
+    if (en) { tacheExport = en.id; suivreExport(en.id, false); }
+  }).catch(() => {});
+  addEventListener('resize', dessinerFrise);
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', dessinerFrise);
+}
+
+function rendre() {
+  let html = '', g = -1, si = -1;
+  for (let k = 0; k < J.length; k++) {
+    const j = J[k];
+    if (j.g !== g) {
+      if (g >= 0) html += '</p></div>';
+      const s = SOURCES.indexOf(sourceDe(j.t0));
+      if (s !== si && SOURCES.length > 1) {
+        si = s;
+        const src = SOURCES[s];
+        html += `<div class="source"><b>${esc(src.fichier)}</b>${src.heure ? new Date(src.heure).toLocaleString(LOCALE, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</div>`;
+      }
+      g = j.g;
+      const h = horloge(j.d);
+      html += `<div class="par" data-g="${g}">
+        <div class="meta" data-k="${k}" title="${t('ed.ecouter_ici')}">${h ? `<span class="hor">${h}</span>` : ''}${hms(j.d)}<button class="act" data-g="${g}" title="${t('ed.couper_par')}">${ICO_CISEAUX}</button></div><p>`;
+    }
+    const txt = j.p ? t('ed.silence', { n: Math.round(j.t1 - j.t0) }) : esc(corr[j.i] ?? j.x);
+    html += `<span class="w${j.p ? ' p' : ''}" data-k="${k}">${txt}</span><span class="sp"> </span>`;
+  }
+  html += '</p></div>';
+  $('#texte').innerHTML = html;
+  spans = $$('.w');
+  pars = new Map($$('.par').map(p => [+p.dataset.g, p]));
+}
+
+// ------------------------------------------------------------------ état
+function appliquerTout() {
+  spans.forEach((s, k) => { s.classList.toggle('x', sup.has(J[k].i)); s.classList.toggle('c', J[k].i in corr); });
+  majParagraphes(); recalculer();
+}
+function majParagraphes(gs) {
+  for (const g of gs ? [...gs] : [...pars.keys()]) {
+    const p = pars.get(g);
+    p.classList.toggle('coupe', $$('.w', p).every(w => w.classList.contains('x')));
+  }
+}
+function recalculer() {
+  garde = []; dureeMontage = 0;
+  for (let k = 0; k < J.length; k++) {
+    if (sup.has(J[k].i)) continue;
+    const a = J[k].d, b = fin(k);
+    dureeMontage += b - a;
+    if (garde.length && Math.abs(garde.at(-1)[1] - a) < 1e-6) garde.at(-1)[1] = b; else garde.push([a, b]);
+  }
+  const retire = DUREE - dureeMontage;
+  $('#durees').innerHTML = `${t('ed.montage', { d: hms(dureeMontage) })}${retire > 0.5 ? ` · <span class="moins">−${dureeLisible(retire)}</span>` : ''}`;
+  dessinerFrise();
+  planMinimap(opts.masquer);
+}
+function modifier(ks, couper) {
+  const ids = ks.map(k => J[k].i).filter(i => couper ? !sup.has(i) : sup.has(i));
+  if (!ids.length) return;
+  histo.push({ ids, couper }); refaire = [];
+  basculer(ids, couper);
+}
+function basculer(ids, couper) {
+  const gs = new Set();
+  for (const i of ids) { couper ? sup.add(i) : sup.delete(i); spans[i].classList.toggle('x', couper); gs.add(J[i].g); }
+  majParagraphes(gs); recalculer(); sauver();
+}
+function annuler() {
+  const h = histo.pop(); if (!h) return;
+  refaire.push(h);
+  h.corr ? poserCorrections(h.corr.map(([i, avant]) => [i, avant])) : basculer(h.ids, !h.couper);
+}
+function retablir() {
+  const h = refaire.pop(); if (!h) return;
+  histo.push(h);
+  h.corr ? poserCorrections(h.corr.map(([i, , apres]) => [i, apres])) : basculer(h.ids, h.couper);
+}
+
+// --------------------------------------------------------------- marqueurs
+// Marqueur de reprise (vert, unique : le projet se rouvre là) et moments forts (ambre, passages surlignés).
+let reprise = null;        // indice du jeton
+let forts = [];            // [{ de, a, cree }] : indices du premier et du dernier jeton
+
+function motCourant() {
+  const ks = jetonsSelection();
+  if (ks.length) return ks[0];
+  if (courant >= 0 && !audio.paused) return courant;
+  const haut = $('.appbar').offsetHeight + 20;
+  let lo = 0, hi = spans.length;
+  while (lo < hi) { const m = (lo + hi) >> 1; spans[m].getBoundingClientRect().bottom < haut ? lo = m + 1 : hi = m; }
+  const rc = spans[courant]?.getBoundingClientRect();
+  return rc && rc.top > haut && rc.bottom < innerHeight - 140 ? courant : lo;
+}
+
+// Reprise automatique : la position du curseur de lecture est enregistrée en continu (discrètement) ;
+// à la prochaine ouverture, le projet revient là. Le ⚑ affiché reste celui de l'ouverture de la séance.
+let position = null;       // position courante, enregistrée pour la prochaine ouverture
+let positionEnregistree;   // dernière position écrite sur le disque (fixée au chargement)
+let minuteriePosition = null;
+function noterPosition() {
+  if (courant < 0 || !J[courant] || J[courant].i === position) return;
+  position = J[courant].i;
+  if (!minuteriePosition) minuteriePosition = setTimeout(() => { minuteriePosition = null; enregistrerEtat(); }, 2000);
+}
+function corpsEtat() {
+  return { supprimes: [...sup].sort((a, b) => a - b), corrections: corr, reprise: position ?? reprise, forts, duree_montage: dureeMontage };
+}
+function enregistrerEtat() {           // enregistrement silencieux (sans toucher à l'indicateur « Enregistré »)
+  const corps = corpsEtat();
+  return api(`/api/p/${PID}/etat`, { body: corps }).then(() => { positionEnregistree = corps.reprise; }).catch(() => {});
+}
+// en quittant la page (retour aux projets, fermeture) : envoi immédiat, seulement si la position a bougé
+addEventListener('pagehide', () => {
+  if (position != null && position !== positionEnregistree) navigator.sendBeacon(`/api/p/${PID}/etat`, JSON.stringify(corpsEtat()));
+});
+
+function basculerFort() {
+  let ks = jetonsSelection();
+  if (!ks.length) { const k = motCourant(); if (k == null) return; ks = [k]; }
+  const de = J[ks[0]].i, a = J[ks.at(-1)].i;
+  const touches = forts.filter(f => f.de <= a && f.a >= de);
+  if (touches.length) { forts = forts.filter(f => !touches.includes(f)); toast(t('marq.fort_retire'), { duree: 1800 }); }
+  else {
+    const f = { de, a, cree: new Date().toISOString(), note: '' };
+    forts.push(f);
+    finirSelection(); afficherMarqueurs(); sauver();
+    return demanderNote(f);
+  }
+  finirSelection(); afficherMarqueurs(); sauver();
+}
+
+// Note rapide : dans le sommaire s'il est affiché, sinon dans une petite fenêtre
+function demanderNote(f) {
+  const ligne = $(`#som-liste .som[data-de="${f.de}"]`);
+  if (ligne && ligne.offsetParent) return editerNote(f, ligne);
+  const fen = fenetre(`<h2>${t('som.note_titre')}</h2><p>${t('som.note_aide')}</p>
+    <label class="champ"><input type="text" id="note" maxlength="80" placeholder="${esc(t('som.note_exemple'))}" value="${esc(f.note || '')}"></label>
+    <div class="actions"><button class="btn" id="passer">${t('som.passer')}</button><button class="btn primaire" id="ok">${t('som.valider')}</button></div>`);
+  const valider = () => { f.note = $('#note', fen.el).value.trim(); fen.fermer(); afficherMarqueurs(); sauver(); };
+  $('#ok', fen.el).onclick = valider;
+  $('#passer', fen.el).onclick = fen.fermer;
+  $('#note', fen.el).onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') valider(); if (e.key === 'Escape') fen.fermer(); };
+}
+
+function editerNote(f, ligne) {
+  const zone = $('.note', ligne);
+  const inp = document.createElement('input');
+  inp.type = 'text'; inp.maxLength = 80; inp.value = f.note || ''; inp.placeholder = t('som.note_exemple');
+  zone.replaceWith(inp); inp.focus();
+  let fini = false;
+  const finir = ok => {
+    if (fini) return; fini = true;
+    if (ok) { f.note = inp.value.trim(); sauver(); }
+    afficherMarqueurs();
+  };
+  inp.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') finir(true); if (e.key === 'Escape') finir(false); };
+  inp.onblur = () => finir(true);
+  inp.onclick = e => e.stopPropagation();
+}
+
+function extraitTexte(de, a, max = 140) {
+  let s = '';
+  for (let x = de; x <= a && s.length < max; x++) if (!J[x].p) s += (s ? ' ' : '') + texteMot(x);
+  return s.length >= max ? s.slice(0, max).replace(/\s\S*$/, '') + '…' : s;
+}
+
+function rendreSommaire() {
+  const liste = $('#som-liste');
+  $('#som-n').textContent = forts.length ? `· ${t('som.n', forts.length)}` : '';
+  const entrees = [];
+  if (reprise != null) entrees.push(`<div class="som reprise" data-k="${reprise}">
+      <div class="h"><b>⚑ ${t('som.reprise')}</b>${hms(J[reprise].d)}</div>
+      <div class="ext">${esc(extraitTexte(reprise, J.length - 1, 90))}</div></div>`);
+  for (const f of forts) {
+    const h = horloge(J[f.de].d), coupe = sup.has(f.de) && sup.has(f.a);
+    entrees.push(`<div class="som" data-de="${f.de}" data-k="${f.de}">
+      <div class="h"><b>★ ${hms(J[f.de].d)}</b>${h}</div>
+      <div class="note ${f.note ? '' : 'vide'}" title="${esc(t('som.note_vide'))}">${esc(f.note || t('som.note_vide'))}</div>
+      <div class="ext ${coupe ? 'coupe' : ''}">${esc(extraitTexte(f.de, f.a))}</div>
+      <button class="suppr" title="${t('som.retirer')}">✕</button></div>`);
+  }
+  liste.innerHTML = entrees.join('') || `<div class="som-vide">${t('som.vide')}</div>`;
+  for (const f of forts) if (f.note) spans[f.de].title = f.note; else spans[f.de].removeAttribute('title');
+  marquerActif(true);
+}
+
+let somActif = null;
+function marquerActif(forcer = false) {
+  const f = forts.find(x => courant >= x.de && courant <= x.a);
+  const cle = f ? f.de : (reprise === courant ? 'r' : null);
+  if (cle === somActif && !forcer) return;
+  somActif = cle;
+  $$('#som-liste .som').forEach(e => e.classList.toggle('actif', cle === 'r' ? e.classList.contains('reprise') : +e.dataset.de === cle));
+}
+
+$('#som-liste').addEventListener('click', e => {
+  const ligne = e.target.closest('.som'); if (!ligne) return;
+  const f = forts.find(x => x.de === +ligne.dataset.de);
+  if (e.target.closest('.suppr') && f) { forts = forts.filter(x => x !== f); afficherMarqueurs(); sauver(); return; }
+  if (e.target.closest('.note') && f) return editerNote(f, ligne);
+  allerA(+ligne.dataset.k);
+});
+
+function afficherMarqueurs() {
+  $$('.w.reprise, .w.fort').forEach(w => w.classList.remove('reprise', 'fort', 'fort-debut', 'fort-fin'));
+  if (reprise != null && !J[reprise]) reprise = null;
+  forts = forts.filter(f => J[f.de] && J[f.a]).sort((x, y) => x.de - y.de);
+  if (reprise != null) spans[reprise].classList.add('reprise');
+  for (const f of forts) {
+    for (let k = f.de; k <= f.a; k++) spans[k].classList.add('fort');
+    spans[f.de].classList.add('fort-debut'); spans[f.a].classList.add('fort-fin');
+  }
+  const n = forts.length + (reprise != null ? 1 : 0), badge = $('#n-marqueurs');
+  badge.textContent = n; badge.style.display = n ? 'block' : 'none';
+  $$('#frise .repere, #frise .zone-fort').forEach(r => r.remove());
+  for (const f of forts) {
+    const z = document.createElement('div');
+    z.className = 'zone-fort';
+    z.style.left = (J[f.de].d / DUREE * 100) + '%';
+    z.style.width = Math.max(.15, (fin(f.a) - J[f.de].d) / DUREE * 100) + '%';
+    $('#frise').appendChild(z);
+  }
+  if (reprise != null) {
+    const r = document.createElement('div');
+    r.className = 'repere'; r.style.left = (J[reprise].d / DUREE * 100) + '%';
+    $('#frise').appendChild(r);
+  }
+  rendreSommaire();
+  planMinimap(true);
+}
+
+function allerA(k) {
+  seek(J[k].d);
+  spans[k].scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+
+function reprendreAuMarqueur() {
+  if (reprise == null) return;
+  requestAnimationFrame(() => { seek(J[reprise].d); spans[reprise].scrollIntoView({ block: 'center' }); });
+  toast(t('marq.repris', { h: hms(J[reprise].d) }), { duree: 3500 });
+}
+
+$('#marqueurs').onclick = () => {
+  const k = motCourant(), ks = jetonsSelection();
+  const de = J[ks[0] ?? k]?.i, a = J[ks.at(-1) ?? k]?.i;
+  const dansFort = de != null && forts.some(f => f.de <= a && f.a >= de);
+  const extrait = (i, j = J.length - 1) => {
+    let s = ''; for (let x = i; x <= j && s.length < 40; x++) if (!J[x].p) s += (s ? ' ' : '') + texteMot(x);
+    return s.replace(/[.…,;:]+$/, '') + '…';
+  };
+  menu($('#marqueurs'), [
+    ...(reprise != null ? [{ libelle: '⚑ ' + t('marq.reprise_aller', { h: hms(J[reprise].d) }), action: () => allerA(reprise) }, '-'] : []),
+    { libelle: t(dansFort ? 'marq.fort_retirer' : 'marq.fort_poser'), action: basculerFort },
+    ...forts.map(f => ({ libelle: `★ ${hms(J[f.de].d)} — ${extrait(f.de, f.a)}`, action: () => allerA(f.de) })),
+    ...(forts.length ? ['-', { libelle: t('marq.forts_retirer'), danger: true, action: () => { forts = []; afficherMarqueurs(); sauver(); } }] : []),
+  ]);
+};
+
+// --------------------------------------------------------------- nettoyage
+// Hésitations transcrites : coupées en une fois (une seule entrée d'annulation)
+const HESITATIONS = /^(e?euh+|heu+|hum+|hm+|mmh*|mh+|euhm|uh+|um+|erm|uhm)$/;
+const HESITATIONS_DOUTEUSES = /^(ben|bah|ah|oh|hein|eh)$/;     // parfois porteuses de sens : décochées par défaut
+const ANNOTATION = /^[\[\(\*].*[\]\)\*][.,]?$/;
+
+$('#nettoyer').onclick = () => {
+  const groupes = new Map();
+  for (const j of J) {
+    if (j.p || sup.has(j.i)) continue;
+    const txt = texteMot(j.i), cle = cleMot(txt);
+    const type = ANNOTATION.test(txt.trim()) ? 'annotation' : HESITATIONS.test(cle) ? 'sur' : HESITATIONS_DOUTEUSES.test(cle) ? 'doute' : null;
+    if (!type) continue;
+    const k = type === 'annotation' ? txt.trim().toLowerCase().replace(/[.,]$/, '') : cle;
+    if (!groupes.has(k)) groupes.set(k, { type, ids: [] });
+    groupes.get(k).ids.push(j.i);
+  }
+  const liste = [...groupes.entries()].sort((a, b) => (a[1].type === 'doute') - (b[1].type === 'doute') || b[1].ids.length - a[1].ids.length);
+  const lignes = liste.map(([k, g], n) => `<label class="x-case"><input type="checkbox" data-n="${n}" ${g.type !== 'doute' ? 'checked' : ''}>
+    <span><b>${esc(k)}</b> <small>· ${g.ids.length}${g.type === 'annotation' ? ' · ' + t('net.annotations') : ''}</small></span></label>`).join('');
+  const f = fenetre(`<h2>${t('net.titre')}</h2>
+    ${liste.length ? `<p>${t('net.intro')}</p><div class="x-fichiers">${lignes}</div>` : `<p><b>${t('net.aucun')}</b><br>${t('net.aucun_aide')}</p>`}
+    <p style="font-size:12.5px;margin-top:14px">${t('net.silences')}</p>
+    <div class="actions"><button class="btn" id="n-annuler">${t('commun.annuler')}</button>${liste.length ? `<button class="btn primaire" id="n-ok"></button>` : ''}</div>`);
+  const choisis = () => $$('input[data-n]', f.el).filter(c => c.checked).flatMap(c => liste[+c.dataset.n][1].ids);
+  const majBouton = () => { const b = $('#n-ok', f.el); if (b) { const n = choisis().length; b.textContent = t('net.couper', { n }); b.disabled = !n; } };
+  f.el.addEventListener('change', majBouton); majBouton();
+  $('#n-annuler', f.el).onclick = f.fermer;
+  if (liste.length) $('#n-ok', f.el).onclick = () => {
+    const ids = choisis();
+    modifier(ids, true);
+    f.fermer();
+    toast(t('net.fait', ids.length), { actions: [[t('corr.annuler'), annuler]] });
+  };
+};
+
+// ------------------------------------------------------------- corrections
+// Clé de comparaison d'un mot : sans casse ni ponctuation autour (« Fibroson, » ≈ « fibroson »)
+const BORDS = /^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu;
+const cleMot = txt => txt.replace(BORDS, '').toLocaleLowerCase(LOCALE);
+const texteMot = i => corr[i] ?? J[i].x;
+
+// Applique la correction d'une occurrence en gardant sa ponctuation et sa majuscule initiale
+function transposer(occurrence, nouveau) {
+  const debut = occurrence.match(/^[^\p{L}\p{N}]*/u)[0], fin = occurrence.match(/[^\p{L}\p{N}]*$/u)[0];
+  const coeurAncien = occurrence.slice(debut.length, occurrence.length - fin.length);
+  let coeur = nouveau.replace(BORDS, '');
+  if (coeurAncien && coeurAncien[0] !== coeurAncien[0].toLocaleLowerCase(LOCALE)) coeur = coeur[0].toLocaleUpperCase(LOCALE) + coeur.slice(1);
+  return debut + coeur + fin;
+}
+
+function poserCorrections(liste) {          // liste de [indice du jeton, texte ou undefined]
+  for (const [i, v] of liste) {
+    if (v === undefined || v === J[i].x) delete corr[i]; else corr[i] = v;
+    spans[i].textContent = texteMot(i);
+    spans[i].classList.toggle('c', i in corr);
+  }
+  sauver(); planMinimap(true);
+}
+function corriger(liste) {                  // avec historique (⌘Z)
+  const ops = liste.map(([i, v]) => [i, corr[i], v === J[i].x ? undefined : v]).filter(([, a, n]) => a !== n);
+  if (!ops.length) return;
+  histo.push({ corr: ops }); refaire = [];
+  poserCorrections(ops.map(([i, , n]) => [i, n]));
+}
+
+function proposerPartout(ancien, nouveau, n) {
+  return new Promise(res => {
+    const f = fenetre(`<h2>${t('corr.titre')}</h2>
+      <p>${t('corr.texte', { ancien: esc(ancien.replace(BORDS, '')), nouveau: esc(nouveau.replace(BORDS, '')), n: t('corr.autres', n) })}</p>
+      <div class="actions"><button class="btn" data-r="ici">${t('corr.ici')}</button>
+      <button class="btn primaire" data-r="partout">${t('corr.partout', { n: n + 1 })}</button></div>`,
+      { surFermeture: () => res(false) });
+    $$('[data-r]', f.el).forEach(b => b.onclick = () => { const tout = b.dataset.r === 'partout'; res(tout); f.fermer(); });
+    $('[data-r=partout]', f.el).focus();
+  });
+}
+
+let minuterie;
+function sauver() {
+  $('#statut').textContent = t('ed.modifie');
+  clearTimeout(minuterie);
+  minuterie = setTimeout(async () => {
+    try {
+      const corps = corpsEtat();
+      const r = await api(`/api/p/${PID}/etat`, { body: corps });
+      positionEnregistree = corps.reprise;
+      $('#statut').textContent = t('ed.enregistre', { h: r.heure });
+    } catch { $('#statut').textContent = t('ed.non_enregistre'); }
+  }, 600);
+}
+
+// ------------------------------------------------------------- sélection
+function jetonsSelection() {
+  const sel = getSelection();
+  if (!sel.rangeCount || sel.isCollapsed || !spans.length) return [];
+  const r = sel.getRangeAt(0);
+  if (!$('#texte').contains(r.commonAncestorContainer)) return [];
+  const pos = k => r.intersectsNode(spans[k]) ? 0 : r.comparePoint(spans[k], 0);
+  let lo = 0, hi = spans.length;
+  while (lo < hi) { const m = (lo + hi) >> 1; pos(m) < 0 ? lo = m + 1 : hi = m; }
+  const debut = lo;
+  hi = spans.length;
+  while (lo < hi) { const m = (lo + hi) >> 1; pos(m) <= 0 ? lo = m + 1 : hi = m; }
+  const ks = [];
+  for (let k = debut; k < lo; k++) ks.push(k);
+  if (ks.length > 1 && spans[ks.at(-1)].contains(r.endContainer) && r.endOffset === 0) ks.pop();
+  if (ks.length > 1 && spans[ks[0]].contains(r.startContainer) && r.startOffset >= (r.startContainer.length ?? 1)) ks.shift();
+  return ks;
+}
+function finirSelection() { getSelection().removeAllRanges(); $('#outils').style.display = 'none'; }
+
+// Barre d'outils de la sélection : recalculée au plus une fois par image, et pendant un glisser à la souris,
+// seulement au lâcher (sur de longs passages, la recalculer à chaque mouvement alourdissait le curseur).
+let planSel = 0, glisse = false;
+function planOutils() { if (!planSel) planSel = requestAnimationFrame(majOutils); }
+$('#texte').addEventListener('mousedown', e => { if (e.button === 0) { glisse = true; $('#outils').style.display = 'none'; } });
+addEventListener('mouseup', () => { if (glisse) { glisse = false; planOutils(); } });
+addEventListener('blur', () => { glisse = false; });
+document.addEventListener('selectionchange', () => { if (!glisse) planOutils(); });
+function majOutils() {
+  planSel = 0;
+  const ks = jetonsSelection(), o = $('#outils');
+  if (!ks.length) { o.style.display = 'none'; return; }
+  let toutCoupe = true, rienCoupe = true;
+  for (const k of ks) {
+    if (sup.has(J[k].i)) rienCoupe = false; else toutCoupe = false;
+    if (!toutCoupe && !rienCoupe) break;
+  }
+  $('[data-o=couper]', o).style.display = toutCoupe ? 'none' : '';
+  $('[data-o=restaurer]', o).style.display = rienCoupe ? 'none' : '';
+  // au-dessus du mot où se trouve le curseur (début ou fin de la sélection), sans mesurer tout le passage
+  const sel = getSelection(), r0 = sel.getRangeAt(0);
+  const versLaFin = r0.endContainer === sel.focusNode && r0.endOffset === sel.focusOffset;
+  const r = spans[versLaFin ? ks.at(-1) : ks[0]].getBoundingClientRect();
+  o.style.display = 'flex';
+  const h = o.offsetHeight, w = o.offsetWidth;
+  const dessus = r.top - h - 10 > 70;                   // sinon (sous la barre du haut) : en dessous du mot
+  o.style.top = (dessus ? r.top - h - 10 : r.bottom + 10) + scrollY + 'px';
+  o.style.left = Math.max(12, Math.min(innerWidth - w - 12, r.left + r.width / 2 - w / 2)) + 'px';
+}
+$('#outils').addEventListener('mousedown', e => e.preventDefault());
+$('#outils').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const ks = jetonsSelection(); if (!ks.length) return;
+  if (b.dataset.o === 'couper') modifier(ks, true);
+  if (b.dataset.o === 'restaurer') modifier(ks, false);
+  if (b.dataset.o === 'fort') return basculerFort();
+  if (b.dataset.o === 'ecouter') { const saut = opts.saut; opts.saut = false; seek(J[ks[0]].d); audio.play(); arretA = fin(ks.at(-1)); opts.sautApres = saut; }
+  finirSelection();
+});
+
+// ---------------------------------------------------------------- lecture
+let arretA = null;
+function seek(t) { audio.currentTime = Math.max(0, Math.min(DUREE, t)); maj(); }
+$('#lecture').onclick = () => audio.paused ? audio.play() : audio.pause();
+for (const a of lecteurs) {
+  a.onplay = () => { if (a !== audio) return; $('#lecture').innerHTML = ICO_PAUSE; lancerBoucle(); };
+  a.onpause = () => {
+    if (a !== audio) return;                          // le lecteur qu'on vient de quitter lors d'une bascule
+    $('#lecture').innerHTML = ICO_PLAY;
+    if (opts.sautApres !== undefined) { opts.saut = opts.sautApres; delete opts.sautApres; }
+    arretA = null;
+  };
+}
+const relais = () => lecteurs[0] === audio ? lecteurs[1] : lecteurs[0];
+let arretRelais = 0;
+function preparerRelais(cible) {
+  const r = relais(), src = audio.getAttribute('src');
+  if (!r.paused) return;                              // lecteur quitté à l'instant, encore en route (muet)
+  if (r.getAttribute('src') !== src) { r.src = src; r.dataset.cible = ''; }
+  if (r.playbackRate !== audio.playbackRate) r.playbackRate = r.defaultPlaybackRate = audio.playbackRate;
+  if (r.dataset.cible !== String(cible)) { r.dataset.cible = String(cible); r.currentTime = cible; }
+}
+function basculerLecteur(cible) {
+  const r = relais();
+  if (r.dataset.cible !== String(cible) || r.seeking || r.readyState < 3 || r.getAttribute('src') !== audio.getAttribute('src')) {
+    audio.currentTime = cible;                        // relais pas encore prêt : saut classique
+    return;
+  }
+  // L'ancien lecteur est rendu muet puis arrêté un peu plus tard : l'arrêter tout de suite retarde
+  // le démarrage de l'autre (60 à 80 ms au lieu de 30 à 40 ms).
+  const ancien = audio;
+  audio = r;
+  ancien.muted = true;
+  r.muted = false;
+  r.play();
+  ancien.dataset.cible = '';
+  clearTimeout(arretRelais);
+  arretRelais = setTimeout(() => { if (ancien !== audio) ancien.pause(); }, 300);
+}
+
+function intervalle(t) {
+  let lo = 0, hi = garde.length;
+  while (lo < hi) { const m = (lo + hi) >> 1; garde[m][1] <= t ? lo = m + 1 : hi = m; }
+  return lo;
+}
+let rafBoucle = 0;
+function lancerBoucle() { cancelAnimationFrame(rafBoucle); rafBoucle = requestAnimationFrame(boucle); }
+function boucle() {
+  rafBoucle = 0;
+  if (audio.paused) return;
+  const t = audio.currentTime;
+  if (arretA !== null && t >= arretA) { audio.pause(); return; }
+  if (opts.saut && garde.length) {
+    const n = intervalle(t);
+    if (n >= garde.length) audio.pause();
+    else if (t < garde[n][0] - 0.02) audio.currentTime = garde[n][0];
+    // anticiper la fin du passage gardé (sinon, à 2,5×, quelques ms de la coupe s'entendent)
+    else if (n + 1 < garde.length) {
+      if (garde[n][1] - t < 0.03 * audio.playbackRate) basculerLecteur(garde[n + 1][0]);
+      else preparerRelais(garde[n + 1][0]);
+    }
+  }
+  maj();
+  rafBoucle = requestAnimationFrame(boucle);
+}
+let courant = -1, defileManuel = 0;
+function maj() {
+  const t = audio.currentTime;
+  $('#pos').textContent = hms(t);
+  $('#tete').style.left = (t / DUREE * 100) + '%';
+  let lo = 0, hi = D.length;
+  while (lo < hi) { const m = (lo + hi) >> 1; D[m] <= t ? lo = m + 1 : hi = m; }
+  const k = lo - 1;
+  if (k === courant) return;
+  spans[courant]?.classList.remove('lu');
+  courant = k;
+  planMinimap();
+  if (forts.length || reprise != null) marquerActif();
+  noterPosition();
+  const s = spans[k];
+  if (!s) return;
+  s.classList.add('lu');
+  if (opts.suivre && !audio.paused && Date.now() - defileManuel > 4000) {
+    const r = s.getBoundingClientRect();
+    if (r.top < 90 || r.bottom > innerHeight - 140) scrollTo({ top: scrollY + r.top - innerHeight * 0.3, behavior: 'smooth' });
+  }
+}
+addEventListener('wheel', () => defileManuel = Date.now(), { passive: true });
+
+// ------------------------------------------------------------------ frise
+function dessinerFrise() {
+  if (!DUREE) return;
+  const cv = $('#frise canvas');
+  const coupe = css('--cut'), garde_ = css('--muted');
+  const gardee = x => { const t = x * DUREE, n = intervalle(t); return n < garde.length && t >= garde[n][0]; };
+  dessinerOnde(cv, CRETE, x => gardee(x) ? garde_ : coupe, { barre: 2, ecart: 1 });
+}
+const frise = $('#frise');
+const tempsFrise = e => Math.max(0, Math.min(1, (e.clientX - frise.getBoundingClientRect().left) / frise.clientWidth)) * DUREE;
+frise.onmousemove = e => {
+  const t = tempsFrise(e), b = $('#bulle');
+  b.textContent = hms(t) + (horloge(t) ? ` · ${horloge(t)}` : '');
+  b.style.left = (t / DUREE * 100) + '%';
+};
+frise.onclick = e => {
+  const t = tempsFrise(e);
+  seek(t);
+  let lo = 0, hi = D.length;
+  while (lo < hi) { const m = (lo + hi) >> 1; D[m] <= t ? lo = m + 1 : hi = m; }
+  spans[Math.max(0, lo - 1)]?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+};
+
+// --------------------------------------------------------------- souris
+$('#texte').addEventListener('mouseup', e => {
+  if (!getSelection().isCollapsed) return;
+  const w = e.target.closest('.w');
+  if (w && !w.querySelector('input')) seek(J[+w.dataset.k].d);
+});
+$('#texte').addEventListener('click', e => {
+  const a = e.target.closest('.act');
+  if (a) {
+    const par = pars.get(+a.dataset.g), y0 = a.getBoundingClientRect().top;
+    const ks = $$('.w', par).map(w => +w.dataset.k);
+    modifier(ks, !ks.every(k => sup.has(J[k].i)));
+    // amener les ciseaux du paragraphe suivant sous la souris : on enchaîne les paragraphes sans bouger le curseur
+    let n = par.nextElementSibling;
+    while (n && !(n.classList.contains('par') && n.offsetParent)) n = n.nextElementSibling;
+    if (n) { defileManuel = Date.now(); scrollBy(0, $('.act', n).getBoundingClientRect().top - y0); }
+    return;
+  }
+  const m = e.target.closest('.meta');
+  if (m) { seek(J[+m.dataset.k].d); if (audio.paused) audio.play(); }
+});
+$('#texte').addEventListener('dblclick', e => {
+  const w = e.target.closest('.w');
+  if (!w || w.classList.contains('p')) return;
+  const k = +w.dataset.k, j = J[k];
+  finirSelection();
+  const inp = document.createElement('input');
+  inp.className = 'edit'; inp.value = corr[j.i] ?? j.x; inp.size = Math.max(3, inp.value.length + 1);
+  w.textContent = ''; w.appendChild(inp); inp.focus(); inp.select();
+  const avant = texteMot(j.i);
+  const finir = async ok => {
+    inp.onblur = null;
+    w.textContent = avant;
+    const v = inp.value.trim();
+    if (!ok || !v || v === avant) return;
+    const cle = cleMot(avant);
+    const autres = cle ? J.filter(x => !x.p && x.i !== j.i && cleMot(texteMot(x.i)) === cle).map(x => x.i) : [];
+    // on ne propose « partout » que si le mot lui-même change (pas pour un simple ajout de ponctuation)
+    const motChange = v.replace(BORDS, '') !== avant.replace(BORDS, '');
+    const partout = autres.length && motChange ? await proposerPartout(avant, v, autres.length) : false;
+    corriger([[j.i, v], ...(partout ? autres.map(i => [i, transposer(texteMot(i), v)]) : [])]);
+    if (partout) toast(t('corr.fait', autres.length + 1), { actions: [[t('corr.annuler'), annuler]] });
+  };
+  inp.onkeydown = ev => { ev.stopPropagation(); if (ev.key === 'Enter') inp.blur(); if (ev.key === 'Escape') { inp.onblur = null; finir(false); } };
+  inp.oninput = () => inp.size = Math.max(3, inp.value.length + 1);
+  inp.onblur = () => finir(true);
+});
+
+// --------------------------------------------------------------- clavier
+addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || $('.voile')) return;
+  const cmd = e.metaKey || e.ctrlKey;
+  if (e.key === ' ') { e.preventDefault(); $('#lecture').click(); }
+  else if ((e.key === 'Backspace' || e.key === 'Delete') && !cmd) { e.preventDefault(); const ks = jetonsSelection(); if (ks.length) { modifier(ks, true); finirSelection(); } }
+  else if (e.key.toLowerCase() === 'r' && !cmd) { const ks = jetonsSelection(); if (ks.length) { modifier(ks, false); finirSelection(); } }
+  else if (cmd && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? retablir() : annuler(); }
+  else if (e.key === 'ArrowLeft' && !cmd) { e.preventDefault(); seek(audio.currentTime - 5); }
+  else if (e.key === 'ArrowRight' && !cmd) { e.preventDefault(); seek(audio.currentTime + 5); }
+  else if (e.key === '?') $('#aide').click();
+  else if (e.key.toLowerCase() === 'f' && !cmd) { e.preventDefault(); basculerFort(); }
+  else if (e.key === '>' || e.key === '<') { const i = VITESSES.indexOf(opts.vitesse) + (e.key === '>' ? 1 : -1); regler(VITESSES[Math.max(0, Math.min(VITESSES.length - 1, i))]); }
+});
+
+// --------------------------------------------------------------- options
+const VITESSES = [1, 1.5, 2, 2.5, 3];
+const optsAGarder = () => ({ saut: opts.saut, masquer: opts.masquer, suivre: opts.suivre, minimap: opts.minimap, sommaire: opts.sommaire, vitesse: opts.vitesse, voixClaire: opts.voixClaire });
+function regler(v) {
+  opts.vitesse = VITESSES.includes(v) ? v : 1;
+  for (const a of lecteurs) {
+    a.playbackRate = a.defaultPlaybackRate = opts.vitesse;
+    a.preservesPitch = true;                      // voix naturelle, sans effet « chipmunk »
+  }
+  $$('#vitesses button').forEach(b => b.classList.toggle('on', +b.dataset.v === opts.vitesse));
+  try { localStorage.setItem('rature-opts', JSON.stringify(optsAGarder())); } catch {}
+}
+$$('#vitesses button').forEach(b => b.textContent = (+b.dataset.v).toLocaleString(LOCALE) + '×');
+$('#vitesses').onclick = e => { const b = e.target.closest('button'); if (b) regler(+b.dataset.v); };
+
+// Voix claire : une copie de l'audio améliorée une fois pour toutes par Rature (égaliseur voix, nivellement,
+// limiteur), lue directement par le lecteur. Un traitement en temps réel par Web Audio n'est pas fiable :
+// WebKit y coupe le son après les sauts quand la lecture est accélérée.
+const SRC_NORMAL = `/p/${PID}/apercu.m4a`;
+let suiviVoixClaire = null;
+function changerSource(url) {
+  if (audio.getAttribute('src') === url) return;
+  const pos = audio.currentTime, jouait = !audio.paused;
+  audio.src = url;
+  audio.currentTime = pos;
+  relais().src = url;
+  relais().dataset.cible = '';
+  regler(opts.vitesse);
+  if (jouait) audio.play();
+}
+function libelleVoixClaire(pct) {
+  $('#voix-claire span').textContent = pct == null ? t('ed.voix_claire') : t('ed.voix_claire_prep', { p: pct });
+}
+async function appliquerVoixClaire(lancer = false) {
+  clearTimeout(suiviVoixClaire);
+  $('#voix-claire').classList.toggle('on', !!opts.voixClaire);
+  if (!opts.voixClaire) { libelleVoixClaire(); return changerSource(SRC_NORMAL); }
+  let e;
+  try { e = await api(`/api/p/${PID}/voix-claire`, lancer ? { body: {} } : {}); }
+  catch (err) { e = { etat: 'erreur', erreur: err.message }; }
+  if (!opts.voixClaire) return;                         // désactivée entre-temps
+  if (e.etat === 'absent' && !lancer) return appliquerVoixClaire(true);
+  if (e.etat === 'en_cours') {
+    libelleVoixClaire(e.pct || 0);
+    suiviVoixClaire = setTimeout(appliquerVoixClaire, 1000);
+    return;
+  }
+  libelleVoixClaire();
+  if (e.etat === 'pret') return changerSource(e.url);
+  opts.voixClaire = false;                              // erreur : retour à l'audio d'origine
+  $('#voix-claire').classList.remove('on');
+  toast(t('ed.voix_claire_erreur', { e: esc(e.erreur || '') }), { erreur: true });
+}
+$('#voix-claire').onclick = () => {
+  opts.voixClaire = !opts.voixClaire;
+  try { localStorage.setItem('rature-opts', JSON.stringify(optsAGarder())); } catch {}
+  appliquerVoixClaire(opts.voixClaire);
+};
+
+function appliquerOptions() {
+  regler(opts.vitesse);
+  appliquerVoixClaire();
+  $$('.opt').forEach(b => b.classList.toggle('on', !!opts[b.dataset.opt]));
+  document.body.classList.toggle('masquer', opts.masquer);
+  document.body.classList.toggle('avec-minimap', opts.minimap);
+  document.body.classList.toggle('avec-sommaire', opts.sommaire);
+  planMinimap(true);
+}
+$$('.opt').forEach(b => b.onclick = () => {
+  opts[b.dataset.opt] = !opts[b.dataset.opt];
+  try { localStorage.setItem('rature-opts', JSON.stringify(optsAGarder())); } catch {}
+  appliquerOptions();
+});
+$('#aide').onclick = () => {
+  const f = fenetre(`<h2>${t('aide.titre')}</h2><p>${t('aide.intro')}</p>
+    <div class="aide-raccourcis">
+      <span><kbd>⌫</kbd></span><span>${t('aide.couper')}</span>
+      <span><kbd>R</kbd></span><span>${t('aide.restaurer')}</span>
+      <span><kbd>F</kbd></span><span>${t('aide.fort')}</span>
+      <span><kbd>⌘</kbd> <kbd>Z</kbd> · <kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>Z</kbd></span><span>${t('aide.annuler')}</span>
+      <span><kbd>${t('aide.espace')}</kbd></span><span>${t('aide.lecture')}</span>
+      <span><kbd>←</kbd> <kbd>→</kbd></span><span>${t('aide.saut')}</span>
+      <span><kbd>&lt;</kbd> <kbd>&gt;</kbd></span><span>${t('aide.vitesse')}</span>
+      <span>${t('aide.clic')}</span><span>${t('aide.clic_aide')}</span>
+      <span>${t('aide.dblclic')}</span><span>${t('aide.dblclic_aide')}</span>
+      <span>${ICO_CISEAUX}</span><span>${t('aide.paragraphe')}</span>
+    </div><div class="actions"><button class="btn" id="ok">${t('commun.fermer')}</button></div>`);
+  $('#ok', f.el).onclick = f.fermer;
+};
+
+// ---------------------------------------------------------------- export
+// ---------------------------------------------------------------- export
+const PRESETS = {
+  podcast: { format: 'mp3', debit: 96, mono: true, ameliorer: true, bruit: 'leger', egaliseur: true, nivellement: true, volume: 'podcast', limiteur: true, silences: true },
+  partage: { format: 'm4a', debit: 64, mono: true, ameliorer: true, bruit: 'leger', egaliseur: true, nivellement: true, volume: 'podcast', limiteur: true, silences: true },
+  archive: { format: 'wav', mono: false, ameliorer: false, silences: false },
+};
+let tacheExport = null;
+
+$('#sous-titres').onclick = e => sousTitres(PID, e.currentTarget);
+$('#exporter').onclick = async () => {
+  if (tacheExport) return suivreExport(tacheExport, true);
+  let infos;
+  try { infos = await api(`/api/p/${PID}/export-options`); } catch (e) { return toast(esc(e.message), { erreur: true }); }
+  const o = infos.options;
+  const stereoPossible = infos.canaux_source > 1;
+  if (!stereoPossible) o.mono = true;
+  const court = c => c.replace(/^\/Users\/[^/]+/, '~').replace(/^~\/Downloads$/, LANGUE_UI === 'fr' ? 'Téléchargements' : 'Downloads');
+  const coche = (id, on) => `<input type="checkbox" id="${id}" ${on ? 'checked' : ''}>`;
+  const f = fenetre(`<h2>${t('exp.titre')}</h2><p id="x-resume"></p>
+    <div class="presets" id="x-presets">${Object.keys(PRESETS).map(k => `<button data-p="${k}">${t('exp.' + k)}</button>`).join('')}<span id="x-perso">${t('exp.perso')}</span></div>
+    <div class="x-grille">
+      <label class="champ"><span>${t('exp.format')}</span><select id="x-format">${['mp3', 'm4a', 'wav'].map(v => `<option value="${v}">${t('exp.' + v)}</option>`).join('')}</select></label>
+      <label class="champ" id="x-debit-c"><span>${t('exp.qualite')}</span><select id="x-debit">${[64, 96, 128, 192].map(v => `<option value="${v}">${t('exp.k' + v)}</option>`).join('')}</select></label>
+      <label class="champ"><span>${t('exp.canaux')}</span><select id="x-mono" ${stereoPossible ? '' : 'disabled'}><option value="1">${t('exp.mono')}</option>${stereoPossible ? `<option value="0">${t('exp.stereo')}</option>` : ''}</select></label>
+    </div>
+    <label class="x-case x-grande">${coche('x-ameliorer', o.ameliorer)}<span><b>${t('exp.ameliorer')}</b><small>${t('exp.ameliorer_aide')}</small></span></label>
+    <div class="x-details" id="x-details">
+      <div class="x-ligne"><span>${t('exp.bruit')}</span><div class="seg" id="x-bruit">${['aucun', 'leger', 'fort'].map(v => `<button data-v="${v}">${t('exp.bruit_' + v)}</button>`).join('')}</div></div>
+      <label class="x-case">${coche('x-egaliseur', o.egaliseur)}<span>${t('exp.egaliseur')} <small>· ${t('exp.egaliseur_aide')}</small></span></label>
+      <label class="x-case">${coche('x-nivellement', o.nivellement)}<span>${t('exp.nivellement')} <small>· ${t('exp.nivellement_aide')}</small></span></label>
+      <div class="x-ligne"><span>${t('exp.volume')}</span><select id="x-volume">${['podcast', 'radio', 'aucun'].map(v => `<option value="${v}">${t('exp.vol_' + v)}</option>`).join('')}</select></div>
+      <label class="x-case">${coche('x-limiteur', o.limiteur)}<span>${t('exp.limiteur')} <small>· ${t('exp.limiteur_aide')}</small></span></label>
+    </div>
+    <label class="x-case">${coche('x-silences', o.silences)}<span>${t('exp.silences')} <small>· ${t('exp.silences_aide')}</small></span></label>
+    <div class="x-ecoute"><button class="btn petit" id="x-ecouter">▶ ${t('exp.ecouter')}</button><span class="seg" id="x-ab" hidden><button data-ab="avant">${t('exp.avant')}</button><button data-ab="apres" class="on">${t('exp.apres')}</button></span><small id="x-ecoute-etat">${t('exp.ecouter_aide')}</small></div>
+    <h3>${t('exp.fichiers')}</h3>
+    <div class="x-fichiers">${['texte', 'srt', 'coupes', 'forts', 'srt_video'].map(k => `<label class="x-case${k === 'srt_video' ? ' large' : ''}">${coche('x-f-' + k, o.fichiers[k])}<span>${t('exp.f_' + k)}${k === 'srt_video' ? ` <small>· ${t('exp.f_srt_video_aide')}</small>` : ''}</span></label>`).join('')}</div>
+    <h3>${t('exp.destination')}</h3>
+    <div class="x-dest"><span id="x-dossier" title="${esc(o.dossier)}">${esc(court(o.dossier))}</span><button class="btn petit" id="x-choisir">${t('exp.choisir')}</button></div>
+    <label class="x-case">${coche('x-zip', o.zip)}<span>${t('exp.zip')}</span></label>
+    <div class="actions"><button class="btn" id="x-annuler">${t('commun.annuler')}</button><button class="btn primaire" id="x-lancer">${t('exp.lancer')}</button></div>`,
+    { surFermeture: () => arreterEcoute() });
+  f.el.querySelector('.fenetre').classList.add('export');
+  const el = s => $(s, f.el);
+  el('#x-format').value = o.format; el('#x-debit').value = String([64, 96, 128, 192].includes(o.debit) ? o.debit : 96);
+  el('#x-mono').value = o.mono ? '1' : '0'; el('#x-volume').value = o.volume;
+  let bruit = o.bruit, dossier = o.dossier;
+
+  const lire = () => ({
+    format: el('#x-format').value, debit: +el('#x-debit').value, mono: el('#x-mono').value === '1',
+    ameliorer: el('#x-ameliorer').checked, bruit, egaliseur: el('#x-egaliseur').checked, nivellement: el('#x-nivellement').checked,
+    volume: el('#x-volume').value, limiteur: el('#x-limiteur').checked, silences: el('#x-silences').checked,
+    fichiers: Object.fromEntries(['texte', 'srt', 'srt_video', 'coupes', 'forts'].map(k => [k, el('#x-f-' + k).checked])),
+    zip: el('#x-zip').checked, dossier,
+  });
+  const majVue = () => {
+    const v = lire();
+    el('#x-debit-c').style.display = v.format === 'wav' ? 'none' : '';
+    el('#x-details').classList.toggle('off', !v.ameliorer);
+    $$('#x-bruit button', f.el).forEach(b => b.classList.toggle('on', b.dataset.v === bruit));
+    const preset = Object.keys(PRESETS).find(k => Object.entries(PRESETS[k]).every(([c, val]) =>
+      (c === 'debit' && v.format === 'wav') || (c === 'mono' && !stereoPossible) || (!v.ameliorer && ['bruit', 'egaliseur', 'nivellement', 'volume', 'limiteur'].includes(c)) || v[c] === val));
+    $$('#x-presets button', f.el).forEach(b => b.classList.toggle('on', b.dataset.p === preset));
+    el('#x-perso').style.display = preset ? 'none' : '';
+    const octets = v.format === 'wav' ? dureeMontage * 48000 * 3 * (v.mono ? 1 : infos.canaux_source) : dureeMontage * v.debit * 125;
+    el('#x-resume').textContent = t('exp.resume', { duree: dureeLisible(dureeMontage), taille: tailleLisible(octets) });
+    el('#x-zip').closest('label').style.opacity = Object.values(v.fichiers).some(Boolean) ? 1 : .55;
+  };
+  f.el.addEventListener('change', majVue);
+  $$('#x-bruit button', f.el).forEach(b => b.onclick = () => { bruit = b.dataset.v; majVue(); });
+  $$('#x-presets button', f.el).forEach(b => b.onclick = () => {
+    const p = PRESETS[b.dataset.p];
+    el('#x-format').value = p.format; if (p.debit) el('#x-debit').value = String(p.debit);
+    if (stereoPossible || p.mono) el('#x-mono').value = p.mono ? '1' : '0';
+    el('#x-ameliorer').checked = p.ameliorer;
+    el('#x-silences').checked = p.silences;
+    if (p.ameliorer) {
+      bruit = p.bruit; el('#x-egaliseur').checked = p.egaliseur; el('#x-nivellement').checked = p.nivellement;
+      el('#x-volume').value = p.volume; el('#x-limiteur').checked = p.limiteur;
+    }
+    majVue();
+  });
+  el('#x-choisir').onclick = async () => {
+    const r = await api('/api/choisir-dossier', { body: {} });
+    if (r.chemin) { dossier = r.chemin.replace(/\/$/, ''); el('#x-dossier').textContent = court(dossier); el('#x-dossier').title = dossier; }
+  };
+
+  // écoute avant / après
+  let ecoute = null, cote = 'apres', urls = null;
+  function arreterEcoute() { ecoute?.pause(); ecoute = null; }
+  el('#x-ecouter').onclick = async () => {
+    if (ecoute && !ecoute.paused) { ecoute.pause(); el('#x-ecouter').textContent = '▶ ' + t('exp.ecouter'); return; }
+    audio.pause();
+    el('#x-ecoute-etat').textContent = t('exp.preparation'); el('#x-ecouter').disabled = true;
+    try {
+      urls = await api(`/api/p/${PID}/apercu-export`, { body: { etat: corpsEtat(), options: lire(), position: audio.currentTime } });
+      arreterEcoute();
+      ecoute = new Audio(urls[cote]); ecoute.play();
+      ecoute.onended = () => { el('#x-ecouter').textContent = '▶ ' + t('exp.ecouter'); };
+      el('#x-ab').hidden = false; el('#x-ecoute-etat').textContent = '';
+      el('#x-ecouter').textContent = '❚❚ ' + t('exp.ecouter');
+    } catch (e) { el('#x-ecoute-etat').textContent = e.message; }
+    el('#x-ecouter').disabled = false;
+  };
+  $$('#x-ab button', f.el).forEach(b => b.onclick = () => {
+    cote = b.dataset.ab;
+    $$('#x-ab button', f.el).forEach(x => x.classList.toggle('on', x === b));
+    if (!urls || !ecoute) return;
+    const pos = ecoute.currentTime, joue = !ecoute.paused;
+    ecoute.pause(); ecoute = new Audio(urls[cote]);
+    ecoute.addEventListener('loadedmetadata', () => { ecoute.currentTime = pos; if (joue) ecoute.play(); }, { once: true });
+    ecoute.onended = () => { el('#x-ecouter').textContent = '▶ ' + t('exp.ecouter'); };
+  });
+
+  el('#x-annuler').onclick = f.fermer;
+  el('#x-lancer').onclick = async () => {
+    arreterEcoute();
+    try {
+      const r = await api(`/api/p/${PID}/export`, { body: { etat: corpsEtat(), options: lire() } });
+      tacheExport = r.tache;
+      suivreExport(tacheExport, true, f);
+    } catch (e) { toast(t('exp.echec', { e: esc(e.message) }), { erreur: true, duree: 10000 }); }
+  };
+  majVue();
+};
+
+// Suivi d'un export en tâche de fond (fenêtre de progression, puis notification)
+function suivreExport(tache, afficher, fen) {
+  const ETAPES = ['montage', 'voix', 'encodage', 'archive'];
+  let vue = null;
+  if (afficher) {
+    fen?.fermer();
+    vue = fenetre(`<h2>${t('exp.titre')}</h2><div class="x-etapes" id="x-etapes"></div>
+      <div class="barre-prog"><i id="x-barre" style="width:0%"></i></div>
+      <div class="actions"><button class="btn" id="x-arriere">${t('exp.fermer')}</button></div>`);
+    $('#x-arriere', vue.el).onclick = vue.fermer;
+  }
+  const b = $('#exporter');
+  b.disabled = false; b.classList.add('occupe');
+  const tour = async () => {
+    let r;
+    try { r = await api(`/api/taches/${tache}`); } catch { return setTimeout(tour, 1000); }
+    if (vue?.el.isConnected) {
+      const i = ETAPES.indexOf(r.etape);
+      $('#x-etapes', vue.el).innerHTML = ETAPES
+        .map((e, k) => `<div class="${k < i || r.etat === 'fini' ? 'fait' : k === i ? 'cours' : ''}">${k < i || r.etat === 'fini' ? '✓' : k === i ? '•' : '·'} ${t('exp.e_' + e)}</div>`).join('');
+      $('#x-barre', vue.el).style.width = (r.progression || 0) + '%';
+    }
+    const actif = r.etat === 'en_cours' || r.etat === 'attente';
+    b.textContent = r.etat === 'attente' ? t('exp.attente') : actif ? `${t('ed.export_en_cours')} ${r.progression || 0} %` : t('ed.exporter');
+    if (actif) return setTimeout(tour, 500);
+    tacheExport = null; b.classList.remove('occupe');
+    vue?.fermer();
+    if (r.etat === 'fini') {
+      const res = r.resultat;
+      toast(`<b>${t('exp.fini')}</b><br>${esc(res.nom)}${res.taille ? ' · ' + tailleLisible(res.taille) : ''}`, { duree: 20000,
+        actions: [[t('ed.finder'), () => api(`/api/p/${PID}/finder`, { body: { fichier: res.chemin } })]] });
+    } else toast(t('exp.echec', { e: esc(r.erreur || '') }), { erreur: true, duree: 12000 });
+  };
+  tour();
+}
+
+// ------------------------------------------------------------- mini-carte
+// Chaque mot est un petit bloc à sa position réelle dans la page (échelle verticale fixe, comme dans
+// les éditeurs de code). Si le texte est plus long que la carte, la carte défile avec la page.
+const mm = { cv: $('#minimap canvas'), ech: 0.12, k: 0.12, xs: null, ys: null, ws: null, hs: 0, col: 1, sources: [], defil: 0, haut: 0, hauteur: 0 };
+let mmPlan = 0, mmRemesurer = false, mmSurvol = false;
+
+function planMinimap(remesurer = false) {
+  if (remesurer) mmRemesurer = true;
+  if (mmPlan) return;
+  mmPlan = requestAnimationFrame(() => {
+    mmPlan = 0;
+    if (!opts.minimap || !spans.length || !mm.cv.clientWidth) return;
+    if (mmRemesurer || !mm.ys) { mesurerMinimap(); mmRemesurer = false; }
+    dessinerMinimap();
+  });
+}
+
+function mesurerMinimap() {
+  const n = spans.length;
+  mm.xs = new Float32Array(n); mm.ys = new Float32Array(n); mm.ws = new Float32Array(n);
+  let p0 = null, haut = 0, gauche = 0, dernierY = 0;
+  for (let k = 0; k < n; k++) {
+    const s = spans[k];
+    if (!s.offsetParent) { mm.ys[k] = dernierY; continue; }   // mot masqué
+    const p = s.parentNode;
+    if (p !== p0) { p0 = p; haut = s.offsetParent.offsetTop; gauche = p.offsetLeft; mm.col = p.clientWidth || mm.col; }
+    mm.xs[k] = s.offsetLeft - gauche;
+    mm.ys[k] = dernierY = Math.max(dernierY, haut + s.offsetTop);   // les pastilles « silence » sont décalées de 2 px
+    mm.ws[k] = s.offsetWidth;
+    if (!mm.hs) mm.hs = s.offsetHeight;
+  }
+  mm.sources = $$('.source').map(e => e.offsetTop + e.offsetHeight / 2);
+}
+
+function dessinerMinimap() {
+  const cv = mm.cv, dpr = devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const c = cv.getContext('2d');
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.clearRect(0, 0, W, H);
+  const docH = document.documentElement.scrollHeight, vh = innerHeight, maxS = Math.max(1, docH - vh);
+  const e = mm.ech, sx = W / mm.col, contenu = docH * e;
+  mm.defil = contenu > H ? scrollY / maxS * (contenu - H) : 0;
+  mm.k = contenu > H ? (H - vh * e) / maxS : e;          // déplacement du cadre par pixel défilé
+  mm.hauteur = vh * e;
+  mm.haut = scrollY * mm.k;
+  // avancement dans le document (défilement), accroché au milieu du cadre de la zone affichée
+  const pct = $('#pct-mm');
+  pct.textContent = Math.min(1, scrollY / maxS).toLocaleString(LOCALE, { style: 'percent' });
+  pct.style.top = (cv.offsetTop + Math.min(H - 8, Math.max(8, mm.haut + mm.hauteur / 2))) + 'px';
+
+  // mots visibles dans la carte
+  const y0 = mm.defil / e - mm.hs, y1 = (mm.defil + H) / e;
+  let lo = 0, hi = spans.length;
+  while (lo < hi) { const m = (lo + hi) >> 1; mm.ys[m] < y0 ? lo = m + 1 : hi = m; }
+  const garde_ = new Path2D(), coupe = new Path2D(), pause = new Path2D();
+  const hb = Math.max(1.5, mm.hs * e * 0.62);
+  for (let k = lo; k < spans.length && mm.ys[k] <= y1; k++) {
+    if (!mm.ws[k]) continue;
+    const chemin = sup.has(J[k].i) ? coupe : J[k].p ? pause : garde_;
+    chemin.rect(mm.xs[k] * sx, (mm.ys[k] + mm.hs * 0.2) * e - mm.defil, Math.max(1, mm.ws[k] * sx - 1), hb);
+  }
+  c.fillStyle = css('--star');
+  for (const f of forts) {
+    const ya = mm.ys[f.de] * e - mm.defil, yb = (mm.ys[f.a] + mm.hs) * e - mm.defil;
+    if (yb < 0 || ya > H) continue;
+    c.globalAlpha = .22; c.fillRect(0, ya, W, Math.max(2, yb - ya));
+    c.globalAlpha = 1; c.fillRect(0, ya, 2, Math.max(2, yb - ya));
+  }
+  c.globalAlpha = .5; c.fillStyle = css('--muted'); c.fill(garde_);
+  c.globalAlpha = .35; c.fill(pause);
+  c.globalAlpha = .75; c.fillStyle = css('--cut'); c.fill(coupe);
+  c.globalAlpha = 1;
+  if (reprise != null) {
+    const my = (mm.ys[reprise] + mm.hs * 0.2) * e - mm.defil;
+    c.fillStyle = css('--ok');
+    if (my > -4 && my < H + 4) c.fillRect(0, my - 1, W, 3);
+  }
+  c.globalAlpha = 1;
+
+  // changements de fichier source
+  c.fillStyle = css('--line-strong');
+  for (const y of mm.sources) { const my = y * e - mm.defil; if (my > -2 && my < H + 2) c.fillRect(0, my, W, 1); }
+
+  // position de lecture
+  if (spans[courant] && mm.ws[courant]) {
+    const my = (mm.ys[courant] + mm.hs * 0.2) * e - mm.defil;
+    c.fillStyle = css('--accent');
+    c.fillRect(0, my + hb / 2 - .5, W, 1);
+    c.fillRect(mm.xs[courant] * sx - 1, my - 1, Math.max(3, mm.ws[courant] * sx + 1), hb + 2);
+  }
+
+  // cadre de la zone affichée
+  c.fillStyle = css('--text');
+  c.globalAlpha = mmSurvol ? .12 : .07;
+  c.beginPath(); c.roundRect ? c.roundRect(0, mm.haut, W, mm.hauteur, 4) : c.rect(0, mm.haut, W, mm.hauteur); c.fill();
+  c.globalAlpha = 1;
+}
+
+addEventListener('scroll', () => planMinimap(), { passive: true });
+addEventListener('resize', () => planMinimap(true));
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => planMinimap());
+
+mm.cv.addEventListener('mousedown', e => {
+  e.preventDefault();
+  const y = e.offsetY;
+  if (y < mm.haut || y > mm.haut + mm.hauteur) scrollTo(0, (y - mm.hauteur / 2) / mm.k);   // aller à l'endroit cliqué
+  const depart = { y: e.clientY, defil: scrollY };
+  defileManuel = Date.now();
+  const bouger = ev => { defileManuel = Date.now(); scrollTo(0, depart.defil + (ev.clientY - depart.y) / mm.k); };
+  const lacher = () => { removeEventListener('mousemove', bouger); removeEventListener('mouseup', lacher); };
+  addEventListener('mousemove', bouger);
+  addEventListener('mouseup', lacher);
+});
+mm.cv.addEventListener('mousemove', e => {
+  if (!mm.ys) return;
+  const yDoc = (e.offsetY + mm.defil) / mm.ech;
+  let lo = 0, hi = spans.length;
+  while (lo < hi) { const m = (lo + hi) >> 1; mm.ys[m] <= yDoc ? lo = m + 1 : hi = m; }
+  const k = Math.max(0, lo - 1), b = $('#bulle-mm');
+  const h = horloge(J[k].d);
+  b.textContent = hms(J[k].d) + (h ? ` · ${h}` : '');
+  b.style.top = (e.offsetY + 16) + 'px';
+  b.style.display = 'block';
+  if (!mmSurvol) { mmSurvol = true; planMinimap(); }
+});
+mm.cv.addEventListener('mouseleave', () => { $('#bulle-mm').style.display = 'none'; mmSurvol = false; planMinimap(); });
+
+demarrer().catch(e => $('#texte').innerHTML = `<div id="chargement">${t('ed.erreur_chargement', { e: esc(e.message) })}</div>`);
+</script>
+</body>
+</html>

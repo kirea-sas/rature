@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rature</title>
+<link rel="stylesheet" href="/commun.css">
+<style>
+main { max-width: 1120px; margin: 0 auto; padding: 36px 24px 80px; }
+.entete { display: flex; align-items: flex-end; gap: 16px; margin-bottom: 26px; flex-wrap: wrap; }
+.entete h1 { font-size: 28px; font-weight: 680; }
+.entete .compte { color: var(--faint); font-size: 15px; font-weight: 500; margin-left: 6px; }
+.entete .recherche { width: 240px; }
+.entete .recherche input { padding-left: 32px; background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='6' cy='6' r='4.5'/%3E%3Cpath d='m9.5 9.5 3 3'/%3E%3C/svg%3E") no-repeat 11px center; }
+
+.grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
+.carte { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+  transition: border-color .15s, box-shadow .15s, transform .15s; cursor: pointer; display: flex; flex-direction: column; }
+.carte:hover { border-color: var(--line-strong); box-shadow: var(--shadow); transform: translateY(-1px); }
+.carte .onde { height: 92px; background: var(--surface-2); padding: 16px 16px 12px; position: relative; }
+.carte .onde canvas { width: 100%; height: 100%; display: block; }
+.carte .onde .vide { position: absolute; inset: 0; display: grid; place-items: center; color: var(--faint); font-size: 12.5px; }
+.carte .corps { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.carte h3 { font-size: 15.5px; font-weight: 620; line-height: 1.3; padding-right: 30px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.carte .meta { color: var(--muted); font-size: 13px; }
+.carte .pied { display: flex; align-items: center; gap: 10px; margin-top: auto; padding-top: 6px; font-size: 12.5px; color: var(--muted); min-height: 30px; }
+.carte .pied .barre-prog { flex: 1; }
+.carte .plus { position: absolute; top: 102px; right: 8px; }
+.carte .montage b { color: var(--text); font-weight: 600; }
+.carte .avancement { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--muted); }
+.carte .avancement .barre-prog { flex: 1; }
+.carte .avancement b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; min-width: 38px; text-align: right; }
+
+.nouvelle { border: 1.5px dashed var(--line-strong); background: transparent; display: grid; place-items: center;
+  min-height: 228px; color: var(--muted); font-weight: 550; gap: 10px; }
+.nouvelle:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); box-shadow: none; }
+.nouvelle .rond { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); border: 1px solid var(--line); }
+
+.bandeau { display: flex; align-items: center; gap: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 14px 18px; margin-bottom: 22px; }
+.bandeau .ico { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); flex: none; }
+.panneau-exports { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; margin-bottom: 22px; overflow: hidden; }
+.panneau-exports h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 12px 18px 4px; }
+.tache { display: grid; grid-template-columns: 1fr 220px auto; gap: 16px; align-items: center; padding: 10px 18px; border-top: 1px solid var(--line); }
+.tache:first-of-type { border-top: 0; }
+.tache b { font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tache .info { font-size: 12.5px; color: var(--muted); }
+.tache .info.ok { color: var(--ok); } .tache .info.ko { color: var(--cut); }
+.tache .barre-prog { height: 6px; }
+.tache .boutons { display: flex; gap: 6px; justify-content: flex-end; min-width: 150px; }
+.badge-export { position: absolute; top: 12px; left: 12px; background: var(--accent); color: #fff; font-size: 11.5px; font-weight: 600;
+  padding: 2px 8px; border-radius: 99px; box-shadow: var(--shadow); }
+.bandeau.nouveau .ico { background: var(--ok-soft); color: var(--ok); }
+.bandeau.erreur .ico { background: var(--cut-soft); color: var(--cut); }
+.bandeau b { display: block; font-weight: 600; }
+.bandeau span { color: var(--muted); font-size: 13px; }
+.bandeau .barre-prog { width: 200px; flex: none; }
+.vide-page { text-align: center; padding: 90px 20px; color: var(--muted); }
+.vide-page h2 { color: var(--text); font-size: 20px; margin: 18px 0 8px; }
+.vide-page p { max-width: 420px; margin: 0 auto 22px; }
+</style>
+</head>
+<body>
+<header class="appbar">
+  <a class="logo" href="/"></a>
+  <span class="espace"></span>
+  <a class="btn fantome icone" href="/reglages" data-t-title="accueil.reglages"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  <button class="btn primaire" id="nouveau"><svg width="14" height="14" viewBox="0 0 14 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 2v10M2 7h10"/></svg><span data-t="accueil.nouveau"></span></button>
+</header>
+<main>
+  <div class="entete">
+    <h1><span data-t="accueil.titre"></span><span class="compte" id="compte"></span></h1>
+    <span class="espace"></span>
+    <label class="recherche"><input type="text" id="filtre" data-t-placeholder="accueil.rechercher"></label>
+  </div>
+  <div id="exports"></div>
+  <div id="maj"></div>
+  <div id="modele"></div>
+  <div id="liste"></div>
+</main>
+<script src="/langue.js"></script>
+<script src="/i18n.js"></script>
+<script src="/commun.js"></script>
+<script>
+$('.logo').innerHTML = LOGO + 'Rature';
+let projets = [], cretes = {}, minuterie;
+
+async function charger() {
+  projets = (await api('/api/projets')).filter(p => p.genre !== 'sous-titres');
+  rendre();
+  clearTimeout(minuterie);
+  if (projets.some(p => p.statut === 'traitement' || p.statut === 'attente')) minuterie = setTimeout(charger, 2000);
+}
+
+function rendre() {
+  const f = $('#filtre').value.trim().toLowerCase();
+  const liste = projets.filter(p => !f || p.nom.toLowerCase().includes(f));
+  $('#compte').textContent = projets.length ? ` ${projets.length}` : '';
+  if (!projets.length) {
+    $('#liste').innerHTML = `<div class="vide-page">${LOGO.replace('22', '40').replace('22', '40')}
+      <h2>${t('accueil.vide.titre')}</h2>
+      <p>${t('accueil.vide.texte')}</p>
+      <button class="btn primaire" onclick="nouveau()">${t('accueil.vide.bouton')}</button></div>`;
+    return;
+  }
+  $('#liste').innerHTML = `<div class="grille">${liste.map(carte).join('')}
+    <button class="carte nouvelle" onclick="nouveau()"><div><div class="rond" style="margin:0 auto 10px"><svg width="16" height="16" viewBox="0 0 14 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 2v10M2 7h10"/></svg></div>${t('accueil.nouveau')}</div></button></div>`;
+  for (const p of liste) ondeCarte(p);
+  if (typeof afficherExports === 'function' && taches.length) afficherExports();
+}
+
+function carte(p) {
+  const duree = p.duree || p.duree_sources;
+  let pied;
+  if (p.statut === 'traitement' || p.statut === 'attente') {
+    const ind = p.statut === 'attente' || p.etape === 'preparation' && !p.progression;
+    pied = `<span>${p.etape ? t('etape.' + p.etape) : t('etape.attente')}${p.progression && p.etape === 'transcription' ? ` · ${p.progression} %` : ''}</span>
+      <div class="barre-prog ${ind ? 'indet' : ''}"><i style="width:${p.progression || 0}%"></i></div>`;
+  } else if (p.statut === 'pret') {
+    pied = !p.n_coupes ? `<span>${t('carte.pas_monte')}</span>`
+      : `<span class="montage">${p.duree_montage != null ? `${t('carte.montage')} <b>${dureeLisible(p.duree_montage)}</b> · ` : ''}${t('carte.coupes', p.n_coupes)}</span>`;
+    if (p.n_exports) pied += `<span class="espace"></span><span>${t('carte.exports', p.n_exports)}</span>`;
+  } else if (p.statut === 'erreur') {
+    pied = `<span style="color:var(--cut)">${esc(p.message || t('carte.echec'))}</span>`;
+  } else {
+    pied = `<span>${p.n_sources ? t('carte.pret_transcrire') : t('carte.aucun_fichier')}</span>`;
+  }
+  return `<a class="carte" href="/p/${p.id}" data-id="${p.id}">
+    <div class="onde"><canvas></canvas>${p.statut === 'pret' ? '' : `<div class="vide">${p.n_sources ? t('carte.fichiers_importes', p.n_sources) : t('carte.pas_audio')}</div>`}</div>
+    <button class="btn fantome icone petit plus" data-menu="${p.id}" title="${t('carte.options')}"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><circle cx="3" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="13" cy="8" r="1.4"/></svg></button>
+    <div class="corps">
+      <h3 title="${esc(p.nom)}">${esc(p.nom)}</h3>
+      <div class="meta">${[duree ? dureeLisible(duree) : '', p.n_sources ? t('carte.fichiers', p.n_sources) : '', t('carte.modifie', { d: dateLisible(p.modifie) })].filter(Boolean).join(' · ')}</div>
+      <div><span class="puce ${p.statut}">${t('etat.' + p.statut)}</span></div>
+      ${p.avancement ? `<div class="avancement" title="${t('carte.avancement_aide')}"><span>${t('carte.avancement')}</span>
+        <div class="barre-prog"><i style="width:${p.avancement.texte * 100}%"></i></div><b>${Math.round(p.avancement.texte * 100)} %</b></div>` : ''}
+      <div class="pied">${pied}</div>
+    </div></a>`;
+}
+
+async function ondeCarte(p) {
+  if (p.statut !== 'pret') return;
+  const cv = $(`.carte[data-id="${p.id}"] canvas`);
+  if (!cv) return;
+  cretes[p.id] ??= await api(`/api/p/${p.id}/crete?n=400`).catch(() => []);
+  const c = css('--faint'), lu = css('--accent'), fin = p.avancement?.temps ?? 0;
+  dessinerOnde(cv, cretes[p.id], x => x < fin ? lu : c, { barre: 2, ecart: 1.5 });   // partie déjà parcourue en couleur
+}
+
+$('#liste').addEventListener('click', e => {
+  const b = e.target.closest('[data-menu]');
+  if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  const p = projets.find(x => x.id === b.dataset.menu);
+  menu(b, [
+    { libelle: t('menu.ouvrir'), action: () => location.href = `/p/${p.id}` },
+    { libelle: t('menu.renommer'), action: () => renommer(p) },
+    ...(p.statut === 'pret' ? [{ libelle: t('st.menu'), action: () => sousTitres(p.id) }] : []),
+    { libelle: t('menu.finder'), action: () => api(`/api/p/${p.id}/finder`, { body: {} }) },
+    '-',
+    { libelle: t('menu.corbeille'), danger: true, action: () => supprimer(p) },
+  ]);
+});
+
+function nouveau() {
+  const f = fenetre(`<h2>${t('nouveau.titre')}</h2><p>${t('nouveau.texte')}</p>
+    <label class="champ"><span>${t('nouveau.nom')}</span><input type="text" id="nom" placeholder="${esc(t('nouveau.exemple'))}"></label>
+    <div class="actions"><button class="btn" id="ann">${t('commun.annuler')}</button><button class="btn primaire" id="ok">${t('nouveau.creer')}</button></div>`);
+  const valider = async () => {
+    const nom = $('#nom', f.el).value.trim();
+    if (!nom) return $('#nom', f.el).focus();
+    const p = await api('/api/projets', { body: { nom } });
+    location.href = `/p/${p.id}`;
+  };
+  $('#ok', f.el).onclick = valider;
+  $('#ann', f.el).onclick = f.fermer;
+  $('#nom', f.el).onkeydown = e => { if (e.key === 'Enter') valider(); };
+}
+$('#nouveau').onclick = nouveau;
+
+function renommer(p) {
+  const f = fenetre(`<h2>${t('renommer.titre')}</h2><p></p>
+    <label class="champ"><span>${t('renommer.nom')}</span><input type="text" id="nom" value="${esc(p.nom)}"></label>
+    <div class="actions"><button class="btn" id="ann">${t('commun.annuler')}</button><button class="btn primaire" id="ok">${t('renommer.bouton')}</button></div>`);
+  const valider = async () => { await api(`/api/p/${p.id}/maj`, { body: { nom: $('#nom', f.el).value.trim() || p.nom } }); f.fermer(); charger(); };
+  $('#nom', f.el).select();
+  $('#ok', f.el).onclick = valider; $('#ann', f.el).onclick = f.fermer;
+  $('#nom', f.el).onkeydown = e => { if (e.key === 'Enter') valider(); };
+}
+
+async function supprimer(p) {
+  if (!await confirmer(t('corbeille.titre'), t('corbeille.texte', { nom: esc(p.nom) }), t('corbeille.bouton'), true)) return;
+  try { await api(`/api/p/${p.id}/supprimer`, { body: {} }); toast(t('corbeille.fait')); charger(); }
+  catch (e) { toast(esc(e.message), { erreur: true }); }
+}
+
+async function verifierModele() {
+  const m = (await api('/api/systeme')).modele, z = $('#modele');
+  if (m.etat === 'pret') { z.innerHTML = ''; return; }
+  const pct = m.total ? Math.floor(m.recu / m.total * 100) : 0;
+  const ico = '<div class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg></div>';
+  if (m.etat === 'en_cours') {
+    z.innerHTML = `<div class="bandeau">${ico}<div style="flex:1"><b>${t('modele.installation', { nom: esc(m.nom) })}</b>
+      <span>${t('modele.progression', { recu: tailleLisible(m.recu), total: tailleLisible(m.total) })}</span></div>
+      <div class="barre-prog"><i style="width:${pct}%"></i></div><span>${pct} %</span></div>`;
+    setTimeout(verifierModele, 1000);
+  } else {
+    z.innerHTML = `<div class="bandeau erreur">${ico}<div style="flex:1"><b>${t('modele.manquant')}</b>
+      <span>${esc(m.message || t('modele.manquant_texte'))} (${esc(m.nom)}, ${tailleLisible(m.total)})</span></div>
+      <a class="btn" href="/reglages">${t('commun.reglages')}</a><button class="btn primaire" id="dl">${t('modele.telecharger')}</button></div>`;
+    $('#dl').onclick = async () => { await api('/api/modele', { body: {} }); verifierModele(); };
+  }
+}
+
+async function verifierMaj() {
+  const m = await api('/api/maj').catch(() => null);
+  if (!m?.disponible) return;
+  try { if (localStorage.getItem('rature-maj-ignoree') === m.derniere) return; } catch {}
+  const notes = m.notes?.[LANGUE_UI] || m.notes?.fr || '';
+  $('#maj').innerHTML = `<div class="bandeau nouveau"><div class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></div>
+    <div style="flex:1"><b>${t('maj.dispo', { v: esc(m.derniere) })}</b><span>${esc(notes || t('maj.texte', { actuelle: m.actuelle }))}</span></div>
+    <button class="btn fantome" id="maj-plus-tard">${t('maj.plus_tard')}</button>
+    <a class="btn primaire" href="${esc(m.url)}" target="_blank" rel="noopener">${t('maj.telecharger')}</a></div>`;
+  $('#maj-plus-tard').onclick = () => { try { localStorage.setItem('rature-maj-ignoree', m.derniere); } catch {} $('#maj').innerHTML = ''; };
+}
+
+// ------------------------------------------------------------- exports
+let taches = [], minuterieExports;
+const ETAPES_EXPORT = { montage: 'exp.e_montage', voix: 'exp.e_voix', encodage: 'exp.e_encodage', archive: 'exp.e_archive', fini: 'exp.e_fini' };
+
+async function suivreExports() {
+  clearTimeout(minuterieExports);
+  try { taches = await api('/api/taches'); } catch { taches = []; }
+  afficherExports();
+  if (taches.some(x => x.etat === 'en_cours' || x.etat === 'attente')) minuterieExports = setTimeout(suivreExports, 1000);
+}
+
+function afficherExports() {
+  const z = $('#exports');
+  if (!taches.length) { z.innerHTML = ''; } else {
+    z.innerHTML = `<div class="panneau-exports"><h2>${t('exp.panneau')}</h2>${taches.map(x => {
+      const fmt = x.format.toUpperCase();
+      let info, droite = '';
+      if (x.etat === 'attente') info = `<div class="info">${fmt} · ${t('exp.attente')}</div>`;
+      else if (x.etat === 'en_cours') info = `<div class="info">${fmt} · ${t(ETAPES_EXPORT[x.etape] || 'exp.e_montage')} · ${x.progression || 0} %</div>`;
+      else if (x.etat === 'fini') {
+        info = `<div class="info ok">✓ ${t('exp.termine')} · ${esc(x.resultat.nom)}${x.resultat.taille ? ' · ' + tailleLisible(x.resultat.taille) : ''}</div>`;
+        droite = `<button class="btn petit" data-finder="${x.id}">${t('ed.finder')}</button>`;
+      } else info = `<div class="info ko">${esc(x.erreur || t('carte.echec'))}</div>`;
+      if (x.etat === 'fini' || x.etat === 'erreur') droite += `<button class="btn fantome petit" data-masquer="${x.id}" title="${t('exp.masquer')}">✕</button>`;
+      const barre = x.etat === 'en_cours' || x.etat === 'attente'
+        ? `<div class="barre-prog ${x.etat === 'attente' ? 'indet' : ''}"><i style="width:${x.progression || 0}%"></i></div>` : '<span></span>';
+      return `<div class="tache"><div><b><a href="/p/${x.pid}">${esc(x.nom)}</a></b>${info}</div>${barre}<div class="boutons">${droite}</div></div>`;
+    }).join('')}</div>`;
+  }
+  // badge sur la carte du projet concerné
+  $$('.badge-export').forEach(b => b.remove());
+  for (const x of taches.filter(x => x.etat === 'en_cours' || x.etat === 'attente')) {
+    const onde = $(`.carte[data-id="${x.pid}"] .onde`);
+    if (onde?.querySelector('.badge-export')) continue;            // un seul badge par projet (le plus avancé)
+    if (onde) onde.insertAdjacentHTML('beforeend', `<span class="badge-export">${x.etat === 'attente' ? t('exp.attente') : t('exp.badge', { p: x.progression || 0 })}</span>`);
+  }
+}
+
+$('#exports').addEventListener('click', async e => {
+  const f = e.target.closest('[data-finder]'), m = e.target.closest('[data-masquer]');
+  if (f) { const x = taches.find(y => y.id === f.dataset.finder); api(`/api/p/${x.pid}/finder`, { body: { fichier: x.resultat.chemin } }); }
+  if (m) { taches = await api(`/api/taches/${m.dataset.masquer}/masquer`, { body: {} }); afficherExports(); }
+});
+
+$('#filtre').oninput = rendre;
+suivreExports();
+verifierModele();
+verifierMaj();
+addEventListener('resize', () => projets.forEach(ondeCarte));
+charger();
+</script>
+</body>
+</html>

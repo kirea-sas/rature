@@ -1,0 +1,9 @@
+# construction (créés par source/construire.sh)
+build/
+publication/
+source/web/licences.json
+source/module_cohere.json
+# Python, macOS
+__pycache__/
+*.pyc
+.DS_Store

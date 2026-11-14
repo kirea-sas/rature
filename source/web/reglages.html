@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rature</title>
+<link rel="stylesheet" href="/commun.css">
+<style>
+main { max-width: 780px; margin: 0 auto; padding: 36px 24px 80px; }
+h1 { font-size: 28px; font-weight: 680; margin-bottom: 26px; }
+section { margin-bottom: 30px; }
+section > h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 10px 2px; }
+section > p.aide { color: var(--muted); font-size: 13px; margin: -4px 0 12px 2px; }
+.carte { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.rangee { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.rangee:last-child { border-bottom: 0; }
+
+.modele { cursor: pointer; transition: background .12s; }
+.modele:hover { background: color-mix(in srgb, var(--surface-2) 55%, transparent); }
+.radio { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--line-strong); display: grid; place-items: center; }
+.modele.choisi .radio { border-color: var(--accent); }
+.modele.choisi .radio::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.modele b { font-weight: 600; }
+.modele .descr { color: var(--muted); font-size: 13px; margin-top: 2px; }
+.modele .lieu { font: 11.5px var(--mono); color: var(--faint); margin-top: 4px; word-break: break-all; }
+.modele .hors { font-size: 12.5px; color: var(--warn); margin-top: 4px; }
+.choix-langue { display: flex; align-items: center; gap: 14px; padding: 14px 16px; }
+.choix-langue select { width: auto; min-width: 240px; }
+.choix-langue p { flex: 1; margin: 0; color: var(--muted); font-size: 13px; }
+.etiquette { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 5px; margin-left: 6px; vertical-align: 1px; }
+.etiquette.reco { background: var(--accent-soft); color: var(--accent); }
+.etiquette.ok { background: var(--ok-soft); color: var(--ok); }
+.actions-m { display: flex; align-items: center; gap: 8px; justify-content: flex-end; min-width: 190px; font-size: 12.5px; color: var(--muted); }
+.actions-m .barre-prog { width: 90px; }
+
+.dossier .ico { width: 34px; height: 34px; border-radius: 9px; background: var(--surface-2); display: grid; place-items: center; color: var(--muted); }
+.dossier b { font-weight: 600; }
+.dossier .chemin { font: 12px var(--mono); color: var(--muted); word-break: break-all; margin-top: 2px; }
+.dossier .libre { font-size: 12px; color: var(--faint); margin-top: 2px; }
+.dossier .boutons { display: flex; gap: 6px; }
+
+@media (max-width: 640px) {
+  .rangee { grid-template-columns: auto 1fr; }
+  .actions-m, .dossier .boutons { grid-column: 2; justify-content: flex-start; min-width: 0; }
+  .apropos { flex-wrap: wrap; }
+}
+.maj-zone { border-top: 1px solid var(--line); grid-template-columns: 52px 1fr auto; }
+.maj-etat { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+.maj-etat b { color: var(--ok); }
+.case { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); cursor: pointer; }
+.apropos { display: flex; align-items: center; gap: 16px; padding: 18px 16px; }
+.apropos .logo-grand { width: 52px; height: 52px; border-radius: 13px; background: linear-gradient(#6178ff, #2c40d0); color: #fff; display: grid; place-items: center; flex: none; }
+.apropos b { font-size: 16px; font-weight: 650; }
+.apropos span { color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="appbar">
+  <a class="logo" href="/"></a>
+  <span class="sep"></span>
+  <a class="btn fantome petit" href="/projets" data-t="commun.projets"></a>
+</header>
+<main>
+  <h1 data-t="reg.titre"></h1>
+
+  <section>
+    <h2 data-t="reg.modele"></h2>
+    <p class="aide" data-t="reg.modele_aide"></p>
+    <div class="carte" id="modeles"></div>
+  </section>
+
+  <section>
+    <h2 data-t="reg.emplacements"></h2>
+    <div class="carte" id="dossiers"></div>
+  </section>
+
+  <section>
+    <h2 data-t="reg.langue"></h2>
+    <div class="carte"><div class="choix-langue">
+      <select id="langue-ui">
+        <option value="auto" data-t="reg.langue_auto"></option>
+        <option value="fr">Français</option>
+        <option value="en">English</option>
+      </select>
+      <p data-t="reg.langue_aide"></p>
+    </div></div>
+  </section>
+
+  <section>
+    <h2 data-t="reg.apropos"></h2>
+    <div class="carte">
+      <div class="apropos"><div class="logo-grand" id="logo-grand"></div>
+        <div style="flex:1"><b>Rature <span id="version"></span></b><br><span data-t="reg.apropos_texte"></span></div>
+        <a class="btn" href="/licences" data-t="reg.licences"></a></div>
+      <div class="rangee maj-zone">
+        <span></span>
+        <div><div id="maj-etat" class="maj-etat"></div>
+          <label class="case"><input type="checkbox" id="maj-auto"> <span data-t="maj.auto"></span></label></div>
+        <div class="boutons"><button class="btn petit" id="maj-verifier" data-t="maj.verifier"></button></div>
+      </div>
+    </div>
+  </section>
+</main>
+<script src="/langue.js"></script>
+<script src="/i18n.js"></script>
+<script src="/commun.js"></script>
+<script>
+$('.logo').innerHTML = LOGO + 'Rature';
+$('#logo-grand').innerHTML = LOGO.replaceAll('22', '28');
+let R = null, minuterie;
+
+async function charger() {
+  R = await api('/api/reglages');
+  rendre();
+  clearTimeout(minuterie);
+  if (R.modeles.some(m => m.etat === 'en_cours')) minuterie = setTimeout(charger, 1000);
+}
+
+function rendre() {
+  $('#version').textContent = R.version;
+  $('#maj-auto').checked = R.reglages.maj_auto !== false;
+  if (!$('#maj-etat').textContent) $('#maj-etat').textContent = t('maj.version', { v: R.version });
+  $('#langue-ui').value = R.reglages.langue_ui || 'auto';
+  const choisi = R.reglages.modele;
+  $('#modeles').innerHTML = R.modeles.map(m => {
+    let actions = '';
+    if (m.etat === 'en_cours') {
+      const pct = Math.floor(m.recu / m.total * 100);
+      actions = `<div class="barre-prog"><i style="width:${pct}%"></i></div><span>${pct} %</span><button class="btn petit" data-action="annuler" data-cle="${m.cle}">${t('reg.annuler')}</button>`;
+    } else if (m.etat === 'pret') {
+      if (m.hors_dossier) actions = `<button class="btn petit" data-action="importer" data-cle="${m.cle}" title="${esc(t('reg.deplacer_modele_aide'))}">${t('reg.deplacer_modele')}</button>`;
+      else if (m.cle !== choisi) actions = `<button class="btn fantome petit danger" data-action="supprimer" data-cle="${m.cle}">${t('reg.supprimer')}</button>`;
+    } else {
+      actions = `${m.etat === 'erreur' ? `<span style="color:var(--cut)" title="${esc(m.message)}">${t('reg.echec')}</span>` : ''}
+        <button class="btn petit" data-action="telecharger" data-cle="${m.cle}">${t('reg.telecharger', { taille: tailleLisible(m.taille) })}</button>`;
+    }
+    return `<div class="rangee modele ${m.cle === choisi ? 'choisi' : ''}" data-cle="${m.cle}">
+      <span class="radio"></span>
+      <div><b>${esc(m.nom)}</b>${m.cle === 'large-v3-turbo' ? `<span class="etiquette reco">${t('reg.recommande')}</span>` : ''}${m.etat === 'pret' ? `<span class="etiquette ok">${t('reg.installe')}</span>` : ''}
+        <div class="descr">${esc(m.descr[LANGUE_UI] || m.descr.fr)} · ${tailleLisible(m.taille)}</div>
+        ${m.chemin ? `<div class="lieu">${esc(m.chemin.replace(/^\/Users\/[^/]+/, '~'))}</div>` : ''}
+        ${m.hors_dossier ? `<div class="hors">${t('reg.hors_dossier')}</div>` : ''}</div>
+      <div class="actions-m">${actions}</div></div>`;
+  }).join('');
+
+  const DOSSIERS = [
+    ['dossier_projets', 'reg.projets', R.libre_projets, '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'],
+    ['dossier_modeles', 'reg.modeles', R.libre_modeles, '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h6v6H9z"/>'],
+  ];
+  $('#dossiers').innerHTML = DOSSIERS.map(([cle, titre, libre, ico]) => `
+    <div class="rangee dossier">
+      <span class="ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">${ico}</svg></span>
+      <div><b>${t(titre)}</b><div class="chemin">${esc(R.reglages[cle].replace(/^\/Users\/[^/]+/, '~'))}</div>
+        <div class="libre">${t(titre + '_aide')}${libre != null ? ` · ${t('reg.libre', { taille: tailleLisible(libre) })}` : ''}</div></div>
+      <div class="boutons"><button class="btn petit" data-ouvrir="${cle}">${t('reg.afficher')}</button><button class="btn petit" data-changer="${cle}">${t('reg.changer')}</button></div>
+    </div>`).join('');
+}
+
+$('#maj-auto').onchange = e => api('/api/reglages/maj-auto', { body: { maj_auto: e.target.checked } });
+$('#maj-verifier').onclick = async () => {
+  const b = $('#maj-verifier'), z = $('#maj-etat');
+  b.disabled = true; z.textContent = t('maj.verification');
+  try {
+    const m = await api('/api/maj?forcer=1');
+    if (m.erreur && !m.derniere) z.textContent = t('maj.erreur');
+    else if (m.disponible) z.innerHTML = `<b>${t('maj.dispo', { v: esc(m.derniere) })}</b> · <a href="${esc(m.url)}" target="_blank" rel="noopener">${t('maj.telecharger')}</a>`;
+    else z.textContent = t('maj.a_jour');
+  } catch { z.textContent = t('maj.erreur'); }
+  b.disabled = false;
+};
+
+$('#langue-ui').onchange = async e => { await api('/api/reglages/langue', { body: { langue_ui: e.target.value } }); location.reload(); };
+
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-action]');
+  try {
+    if (b) {
+      e.stopPropagation();
+      const { action, cle } = b.dataset, m = R.modeles.find(x => x.cle === cle);
+      if (action === 'supprimer' && !await confirmer(t('reg.supprimer_titre'), t('reg.supprimer_texte', { nom: esc(m.nom), taille: tailleLisible(m.taille) }), t('reg.supprimer'), true)) return;
+      R = await api(`/api/modeles/${cle}/${action}`, { body: {} });
+      return charger();
+    }
+    const ligne = e.target.closest('.modele');
+    if (ligne && ligne.dataset.cle !== R.reglages.modele) {
+      const m = R.modeles.find(x => x.cle === ligne.dataset.cle);
+      if (m.etat !== 'pret' && m.etat !== 'en_cours' && !await confirmer(t('reg.utiliser_titre', { nom: esc(m.nom) }), t('reg.utiliser_texte', { taille: tailleLisible(m.taille) }), t('reg.utiliser_bouton'))) return;
+      R = await api(`/api/modeles/${m.cle}/utiliser`, { body: {} });
+      return charger();
+    }
+    const o = e.target.closest('[data-ouvrir]');
+    if (o) return api('/api/ouvrir-dossier', { body: { quoi: o.dataset.ouvrir } });
+    const c = e.target.closest('[data-changer]');
+    if (c) return changerDossier(c.dataset.changer);
+  } catch (err) { toast(esc(err.message), { erreur: true, duree: 8000 }); }
+});
+
+async function changerDossier(cle) {
+  const { chemin } = await api('/api/choisir-dossier', { body: {} });
+  if (!chemin) return;
+  const projets = cle === 'dossier_projets';
+  const deplacer = await new Promise(res => {
+    const f = fenetre(`<h2>${t(projets ? 'reg.nouveau_projets' : 'reg.nouveau_modeles')}</h2>
+      <p><code style="word-break:break-all">${esc(chemin)}</code><br><br>${t(projets ? 'reg.deplacer_projets_q' : 'reg.deplacer_modeles_q')}</p>
+      <div class="actions"><button class="btn" data-r="annuler">${t('commun.annuler')}</button><button class="btn" data-r="non">${t('reg.ne_pas_deplacer')}</button>
+      <button class="btn primaire" data-r="oui">${t('reg.deplacer')}</button></div>`);
+    $$('[data-r]', f.el).forEach(b => b.onclick = () => { f.fermer(); res(b.dataset.r); });
+  });
+  if (deplacer === 'annuler') return;
+  const enCours = toast(t('reg.changement'), { duree: 0 });
+  try {
+    const r = await api('/api/reglages/dossier', { body: { cle, chemin, deplacer: deplacer === 'oui' } });
+    enCours.remove();
+    toast(r.deplaces ? t('reg.deplaces', r.deplaces) : t('reg.dossier_modifie'));
+    R = r; rendre();
+  } catch (err) { enCours.remove(); toast(esc(err.message), { erreur: true, duree: 8000 }); }
+}
+
+charger();
+</script>
+</body>
+</html>

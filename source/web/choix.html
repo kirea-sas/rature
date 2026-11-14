@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rature</title>
+<link rel="stylesheet" href="/commun.css">
+<style>
+main { max-width: 900px; margin: 0 auto; padding: 9vh 24px 60px; }
+.titre { text-align: center; margin-bottom: 40px; }
+.titre .marque { display: inline-flex; color: var(--accent); margin-bottom: 14px; }
+.titre h1 { font-size: 30px; font-weight: 680; letter-spacing: -.02em; }
+.titre p { color: var(--muted); margin-top: 8px; font-size: 15px; }
+.choix { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 680px) { .choix { grid-template-columns: 1fr; } }
+.mode { display: flex; flex-direction: column; gap: 12px; padding: 28px 26px 22px; border-radius: 18px; background: var(--surface);
+  border: 1px solid var(--line); color: inherit; text-decoration: none; transition: border-color .15s, box-shadow .15s, transform .15s; }
+.mode:hover { border-color: var(--accent); box-shadow: var(--shadow); transform: translateY(-2px); }
+.mode .icone { width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
+.mode h2 { font-size: 20px; font-weight: 650; letter-spacing: -.01em; }
+.mode p { color: var(--muted); font-size: 14.5px; line-height: 1.5; flex: 1; }
+.mode .pied { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--faint); border-top: 1px solid var(--line); padding-top: 12px; min-height: 20px; }
+.mode .pied .encours { color: var(--accent); font-weight: 550; }
+.mode .pied .fleche { margin-left: auto; color: var(--accent); font-weight: 600; }
+</style>
+</head>
+<body>
+<header class="appbar">
+  <a class="logo" href="/"></a>
+  <span class="espace"></span>
+  <a class="btn fantome icone" href="/reglages" data-t-title="accueil.reglages"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+</header>
+<main>
+  <div class="titre">
+    <span class="marque" id="marque"></span>
+    <h1 data-t="choix.titre"></h1>
+    <p data-t="choix.sous_titre"></p>
+  </div>
+  <div class="choix">
+    <a class="mode" href="/projets">
+      <span class="icone"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/></svg></span>
+      <h2 data-t="choix.montage"></h2>
+      <p data-t="choix.montage_texte"></p>
+      <div class="pied" id="pied-montage"></div>
+    </a>
+    <a class="mode" href="/sous-titres">
+      <span class="icone"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/><path d="M10 10.2a2.4 2.4 0 1 0 0 3.6M17 10.2a2.4 2.4 0 1 0 0 3.6"/></svg></span>
+      <h2 data-t="choix.films"></h2>
+      <p data-t="choix.films_texte"></p>
+      <div class="pied" id="pied-films"></div>
+    </a>
+  </div>
+</main>
+<script src="/langue.js"></script>
+<script src="/i18n.js"></script>
+<script src="/commun.js"></script>
+<script>
+$('.logo').innerHTML = LOGO + 'Rature';
+$('#marque').innerHTML = LOGO.replaceAll('22', '44');
+// un aperçu de chaque espace : nombre d'éléments, et ce qui est en cours
+api('/api/projets').then(ps => {
+  for (const [id, liste, cle] of [['#pied-montage', ps.filter(p => p.genre !== 'sous-titres'), 'choix.n_projets'],
+                                  ['#pied-films', ps.filter(p => p.genre === 'sous-titres'), 'choix.n_films']]) {
+    const enCours = liste.filter(p => p.statut === 'traitement' || p.statut === 'attente').length;
+    $(id).innerHTML = `<span>${t(cle, liste.length)}</span>${enCours ? `<span class="encours">· ${t('choix.en_cours', enCours)}</span>` : ''}<span class="fleche">→</span>`;
+  }
+}).catch(() => {});
+</script>
+</body>
+</html>
