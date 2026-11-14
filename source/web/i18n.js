@@ -156,8 +156,8 @@ const TEXTES = {
     'reg.licences': 'Licences open source',
     'maj.dispo': 'Rature {v} est disponible', 'maj.telecharger': 'Télécharger', 'maj.plus_tard': 'Plus tard',
     'maj.verifier': 'Rechercher une mise à jour', 'maj.verification': 'Vérification…', 'maj.a_jour': 'Rature est à jour.',
-    'maj.erreur': 'Impossible de joindre kirea.fr. Réessayez plus tard.', 'maj.version': 'Version {v}',
-    'maj.auto': 'Rechercher automatiquement les mises à jour (une fois par jour, sur kirea.fr)',
+    'maj.erreur': 'Impossible de joindre GitHub. Réessayez plus tard.', 'maj.version': 'Version {v}',
+    'maj.auto': 'Rechercher automatiquement les mises à jour (une fois par jour, sur GitHub)',
     'maj.texte': 'Vous avez la version {actuelle}. Téléchargez la nouvelle version, puis remplacez l\'app dans le dossier Applications : vos projets sont conservés.',
 
     // licences
@@ -316,8 +316,8 @@ const TEXTES = {
     'reg.licences': 'Open source licenses',
     'maj.dispo': 'Rature {v} is available', 'maj.telecharger': 'Download', 'maj.plus_tard': 'Later',
     'maj.verifier': 'Check for updates', 'maj.verification': 'Checking…', 'maj.a_jour': 'Rature is up to date.',
-    'maj.erreur': 'Could not reach kirea.fr. Please try again later.', 'maj.version': 'Version {v}',
-    'maj.auto': 'Check for updates automatically (once a day, on kirea.fr)',
+    'maj.erreur': 'Could not reach GitHub. Please try again later.', 'maj.version': 'Version {v}',
+    'maj.auto': 'Check for updates automatically (once a day, on GitHub)',
     'maj.texte': 'You have version {actuelle}. Download the new version, then replace the app in your Applications folder: your projects are kept.',
 
     'lic.retour': '← Settings', 'lic.titre': 'Open source licenses',

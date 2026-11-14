@@ -99,7 +99,7 @@ Switch models in **Settings** (<kbd>⌘,</kbd>). Models are downloaded on demand
 ## Privacy
 
 - Audio and video files are **never uploaded**: transcription, editing and export all happen on your Mac.
-- Rature only goes online to download a model you asked for, and — if you leave it on — to check once a day for a new version (a small JSON file on kirea.fr). You can turn that off in Settings.
+- Rature only goes online to download a model you asked for, and — if you leave it on — to check once a day for a new version (the latest release of this GitHub repository). You can turn that off in Settings.
 - Projects are plain folders (JSON + audio) in `~/Rature/Projets`, which you can move anywhere.
 
 ## Keyboard shortcuts

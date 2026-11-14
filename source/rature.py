@@ -28,7 +28,8 @@ from urllib.parse import urlparse, parse_qs, unquote
 import numpy as np
 
 VERSION = '1.1.0'
-URL_MAJ = os.environ.get('RATURE_URL_MAJ', 'https://www.kirea.fr/rature/version.json')
+# dernière version publiée sur GitHub (une release = une mise à jour, rien d'autre à maintenir)
+URL_MAJ = os.environ.get('RATURE_URL_MAJ', 'https://api.github.com/repos/kirea-sas/rature/releases/latest')
 # Dans l'application, les fichiers embarqués (web/, bin/) sont dans sys._MEIPASS
 RESSOURCES = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
 WEB = os.path.join(RESSOURCES, 'web')
@@ -833,12 +834,32 @@ def importer_modele(cle):
 
 
 # ------------------------------------------------------------ mises à jour
-# Fichier publié sur kirea.fr : {"version": "1.1.0", "date": "…", "url": "…dmg", "notes": {"fr": "…", "en": "…"}}
+# Source : la dernière release GitHub (tag vX.Y.Z, .dmg joint, notes en Markdown) ; l'ancien format version.json
+# ({"version", "date", "url", "notes": {"fr", "en"}}) reste compris.
 FICHIER_MAJ = os.path.join(SUPPORT, 'maj.json')
 
 
 def version_tuple(v):
     return tuple(int(x) for x in re.findall(r'\d+', str(v))[:3]) or (0,)
+
+
+def depuis_github(release):
+    """Release GitHub → {version, date, url (le .dmg), page, notes {en, fr}}.
+
+    Les notes viennent du texte de la release : les puces sous « ### New » (anglais) et « ### Nouveautés » (français)."""
+    dmg = next((a['browser_download_url'] for a in release.get('assets') or [] if a.get('name', '').endswith('.dmg')), None)
+    notes, section = {'en': [], 'fr': []}, None
+    for ligne in (release.get('body') or '').splitlines():
+        titre = re.match(r'#+\s*(.*)', ligne)
+        if titre:
+            t = titre.group(1).lower()
+            section = 'fr' if 'nouveaut' in t else 'en' if t.startswith('new') else None
+        elif section and ligne.lstrip().startswith(('- ', '* ')):
+            texte = re.sub(r'[*_`]|\[([^\]]*)\]\([^)]*\)', lambda m: m.group(1) or '', ligne.lstrip()[2:]).strip()
+            notes[section].append(re.split(r' — | : ', texte)[0].strip(' .'))
+    return {'version': (release.get('tag_name') or '').lstrip('vV'), 'date': (release.get('published_at') or '')[:10],
+            'url': dmg or release.get('html_url'), 'page': release.get('html_url'),
+            'notes': {k: ' · '.join(v[:5]) for k, v in notes.items() if v}}
 
 
 def verifier_maj(forcer=False):
@@ -857,9 +878,11 @@ def verifier_maj(forcer=False):
             ctx = ssl.create_default_context(cafile=certifi.where())
         except ImportError:
             ctx = None
-        req = urllib.request.Request(URL_MAJ, headers={'User-Agent': f'Rature/{VERSION} (macOS)'})
+        req = urllib.request.Request(URL_MAJ, headers={'User-Agent': f'Rature/{VERSION} (macOS)',
+                                                       'Accept': 'application/vnd.github+json'})
         with urllib.request.urlopen(req, timeout=10, context=ctx) as r:
-            cache['publie'] = json.loads(r.read().decode())
+            publie = json.loads(r.read().decode())
+        cache['publie'] = depuis_github(publie) if 'tag_name' in publie else publie
     except Exception as e:  # noqa: BLE001
         cache['erreur'] = str(e)
     try:

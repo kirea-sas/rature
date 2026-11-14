@@ -143,7 +143,7 @@ if [[ -n "${RATURE_IDENTITE:-}" ]]; then
     xcrun stapler staple "$DMG"
   fi
 fi
-URL_DMG="${RATURE_URL_DMG:-https://www.kirea.fr/rature/}Rature-$VERSION.dmg"
+URL_DMG="${RATURE_URL_DMG:-https://github.com/kirea-sas/rature/releases/download/v$VERSION/}Rature-$VERSION.dmg"
 "$VENV/bin/python" - "$PUB/version.json" "$VERSION" "$URL_DMG" "$MINOS" "$(stat -f %z "$DMG")" "$SRC/notes_version.json" <<'PY'
 import json, sys, datetime
 sortie, version, url, minos, taille, notes = sys.argv[1:]

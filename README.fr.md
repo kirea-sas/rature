@@ -99,7 +99,7 @@ Changez de modèle dans les **Réglages** (<kbd>⌘,</kbd>). Les modèles se té
 ## Confidentialité
 
 - Les fichiers audio et vidéo ne sont **jamais envoyés en ligne** : transcription, montage et export se font sur votre Mac.
-- Rature ne se connecte que pour télécharger un modèle que vous avez demandé et, si l'option reste active, pour vérifier une fois par jour s'il existe une nouvelle version (un petit fichier JSON sur kirea.fr). Vous pouvez la désactiver dans les Réglages.
+- Rature ne se connecte que pour télécharger un modèle que vous avez demandé et, si l'option reste active, pour vérifier une fois par jour s'il existe une nouvelle version (la dernière release de ce dépôt GitHub). Vous pouvez la désactiver dans les Réglages.
 - Les projets sont de simples dossiers (JSON et audio) dans `~/Rature/Projets`, que vous pouvez déplacer où vous voulez.
 
 ## Raccourcis clavier
